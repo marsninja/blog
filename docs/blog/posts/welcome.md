@@ -137,11 +137,11 @@ graph TB
     JL --> PC
     JL --> PS
     JL --> VSC
-    
-    style JL fill:#f9f,stroke:#333,stroke-width:4px
-    style PLLM fill:#bbf,stroke:#333,stroke-width:2px
-    style PC fill:#bbf,stroke:#333,stroke-width:2px
-    style PS fill:#bbf,stroke:#333,stroke-width:2px
+
+    style JL stroke-width:4px
+    style PLLM stroke-width:2px,stroke-dasharray: 5 5
+    style PC stroke-width:2px,stroke-dasharray: 5 5
+    style PS stroke-width:2px,stroke-dasharray: 5 5
 ```
 
 The **jac-llm** plugin introduces the `by` keyword, enabling seamless integration with large language models directly in the language syntax. This isn't just syntactic sugar—it represents a fundamental rethinking of how AI capabilities should be integrated into programming languages. Rather than treating AI as an external service called through APIs, Jac treats it as a first-class language construct.
@@ -170,11 +170,11 @@ graph LR
         J6 --> J8
         J7 --> J8
     end
-    
-    style J5 fill:#a8e6a3
-    style J6 fill:#a8e6a3
-    style J7 fill:#a8e6a3
-    style J8 fill:#a8e6a3
+
+    style J5 stroke-width:3px
+    style J6 stroke-width:3px
+    style J7 stroke-width:3px
+    style J8 stroke-width:3px
 ```
 
 When you're building something new from scratch, you might go all-in with Jac. Every module uses Jac syntax, which gives the compiler full visibility into your program's structure. This lets it do things like automatic service boundary detection and cross-module state synchronization. Pretty neat if you're starting fresh.
@@ -193,11 +193,11 @@ graph LR
         J3 --> P4
         J4 --> P4
     end
-    
-    style P4 fill:#b3b3ff
-    style J2 fill:#a8e6a3
-    style J3 fill:#a8e6a3
-    style J4 fill:#a8e6a3
+
+    style P4 stroke-width:2px,stroke-dasharray: 10 5
+    style J2 stroke-width:3px
+    style J3 stroke-width:3px
+    style J4 stroke-width:3px
 ```
 
 This is probably the most practical approach for many teams. Your core application logic lives in Jac, but you keep existing Python modules that already work well. That authentication module you spent months getting right? Keep it. The data pipeline that's already optimized? Leave it alone. Write new stuff in Jac where it makes sense.
@@ -216,11 +216,11 @@ graph LR
         P1 --> J1
         P2 --> J1
     end
-    
-    style P1 fill:#b3b3ff
-    style P2 fill:#b3b3ff
-    style P3 fill:#b3b3ff
-    style J1 fill:#a8e6a3
+
+    style P1 stroke-width:2px,stroke-dasharray: 10 5
+    style P2 stroke-width:2px,stroke-dasharray: 10 5
+    style P3 stroke-width:2px,stroke-dasharray: 10 5
+    style J1 stroke-width:3px
 ```
 
 Got a large Python codebase? This approach lets you add Jac surgically. Maybe one service needs different scaling, or one algorithm would benefit from Jac's concurrency model. You add a single `.jac` file, import it like any Python module, and everything else stays the same. Low risk, easy to try.
@@ -239,11 +239,11 @@ graph LR
         P6 --> P8
         P7 --> P8
     end
-    
-    style P5 fill:#b3b3ff
-    style P6 fill:#b3b3ff
-    style P7 fill:#b3b3ff
-    style P8 fill:#b3b3ff
+
+    style P5 stroke-width:2px,stroke-dasharray: 10 5
+    style P6 stroke-width:2px,stroke-dasharray: 10 5
+    style P7 stroke-width:2px,stroke-dasharray: 10 5
+    style P8 stroke-width:2px,stroke-dasharray: 10 5
 ```
 
 Don't want any new syntax at all? Fair enough. You can access Jac's features entirely through decorators, base classes, and function calls. You lose some compile-time optimizations, but if your organization has strong Python standards or adding a new file extension requires three meetings and a committee approval, this works great.

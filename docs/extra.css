@@ -67,3 +67,17 @@
     overflow: hidden;
     margin-top: 0;
 }
+
+/* Logo - Full height in navbar */
+.md-header__button.md-logo {
+    padding: 0;
+    margin: 0;
+}
+
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+    height: 100%;
+    width: auto;
+    max-height: 2.4rem;  /* Adjust this value to control logo size */
+    display: block;
+}

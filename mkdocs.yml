@@ -1,6 +1,5 @@
-site_name: My Jac Blog
-site_url: https://yourdomain.com
-repo_url: https://github.com/yourusername/blog
+site_name: mars.ninja
+site_url: https://mars.ninja
 use_directory_urls: true
 
 nav:
@@ -11,6 +10,8 @@ nav:
 
 theme:
   name: material
+  logo: assets/ninjaavatar.png
+  favicon: assets/ninjaavatar.png
   features:
     - content.code.copy
 
@@ -52,7 +53,7 @@ extra:
     - icon: fontawesome/brands/twitter
       link: https://twitter.com/yourusername
 
-copyright: Copyright &copy; 2025 Your Name
+copyright: Copyright &copy; 2025 Jason Mars
 
 extra_javascript:
   - https://cdn.jsdelivr.net/pyodide/v0.27.0/full/pyodide.js

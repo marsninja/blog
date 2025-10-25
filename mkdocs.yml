@@ -77,7 +77,6 @@ extra_javascript:
   - https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js
   - js/jac.monarch.js
   - js/run-code.js
-  - js/blog-layout.js
 
 plugins:
   - search

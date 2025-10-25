@@ -11,20 +11,8 @@ nav:
 
 theme:
   name: material
-  palette:
-    scheme: slate
-    primary: black
-    accent: orange
-  font:
-    text: Roboto
-    code: Roboto Mono
   features:
     - content.code.copy
-    - navigation.instant: false
-    - navigation.tracking
-    - navigation.tabs
-    - navigation.footer
-    - navigation.top
 
 markdown_extensions:
   - pymdownx.tabbed:

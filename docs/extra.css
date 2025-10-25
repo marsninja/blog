@@ -2,9 +2,10 @@
 .code-block {
     margin: 1em 0;
     padding: 1em;
-    background: #282c34;
-    color: #abb2bf;
+    background: var(--md-code-bg-color);
+    color: var(--md-code-fg-color);
     border-radius: 4px;
+    border: 1px solid var(--md-default-fg-color--lightest);
 }
 
 .code-block .run-code-btn,
@@ -50,11 +51,12 @@
 
 .code-block .code-output {
     margin-top: 0.5em;
-    background: #1e1e1e;
-    color: #98c379;
+    background: var(--md-code-bg-color);
+    color: var(--md-code-fg-color);
     padding: 0.5em;
     border-radius: 4px;
-    font-family: monospace;
+    border: 1px solid var(--md-default-fg-color--lightest);
+    font-family: var(--md-code-font-family);
     max-height: 1000px;
     overflow: auto;
     transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s;

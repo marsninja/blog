@@ -121,8 +121,8 @@ window.jaclangMonarchSyntax = {
   }
 };
 
-// Define the theme rules and colors for Monaco Editor
-window.jacThemeRules = [
+// Define the theme rules and colors for Monaco Editor (Dark Theme)
+window.jacThemeRulesDark = [
   { token: 'keyword.function', foreground: '569CD6' },
   { token: 'keyword.variable', foreground: '569CD6' },
   { token: 'keyword.type', foreground: '569CD6' },
@@ -137,8 +137,34 @@ window.jacThemeRules = [
   { token: 'delimiter.bracket', foreground: 'D4D4D4' },
 ];
 
-// Define the theme colors for Monaco Editor
-window.jacThemeColors = {
-  'editor.foreground': '#FFFFFF',
+// Define the theme colors for Monaco Editor (Dark Theme)
+window.jacThemeColorsDark = {
+  'editor.foreground': '#D4D4D4',
   'editor.background': '#1E1E1E'
-}
+};
+
+// Define the theme rules for Monaco Editor (Light Theme)
+window.jacThemeRulesLight = [
+  { token: 'keyword.function', foreground: '0000FF' },
+  { token: 'keyword.variable', foreground: '0000FF' },
+  { token: 'keyword.type', foreground: '0000FF' },
+  { token: 'keyword.control', foreground: 'AF00DB' },
+  { token: 'function.identifier', foreground: '001080' },
+  { token: 'type.identifier', foreground: '267F99' },
+  { token: 'operator.logical', foreground: '0000FF' },
+  { token: 'string', foreground: 'A31515' },
+  { token: 'number', foreground: '098658' },
+  { token: 'comment', foreground: '008000' },
+  { token: 'operator', foreground: '000000' },
+  { token: 'delimiter.bracket', foreground: '000000' },
+];
+
+// Define the theme colors for Monaco Editor (Light Theme)
+window.jacThemeColorsLight = {
+  'editor.foreground': '#000000',
+  'editor.background': '#FFFFFF'
+};
+
+// Backward compatibility
+window.jacThemeRules = window.jacThemeRulesDark;
+window.jacThemeColors = window.jacThemeColorsDark;

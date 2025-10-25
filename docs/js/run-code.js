@@ -5,6 +5,7 @@ let monacoLoaded = false;
 let monacoLoadPromise = null;
 let sab = null;
 const initializedBlocks = new WeakSet();
+const allEditors = [];
 
 // Initialize Pyodide Worker
 function initPyodideWorker() {
@@ -85,6 +86,25 @@ function serveJacCodeInWorker(code, inputHandler) {
     return executeJacCodeInWorker(code, inputHandler, "serve");
 }
 
+// Detect current Material theme
+function getCurrentTheme() {
+    const palette = document.querySelector('[data-md-color-scheme]');
+    if (palette) {
+        return palette.getAttribute('data-md-color-scheme');
+    }
+    return 'slate'; // default to dark
+}
+
+// Update all Monaco editors to match the current theme
+function updateMonacoTheme() {
+    const currentScheme = getCurrentTheme();
+    const themeToUse = currentScheme === 'default' ? 'jac-theme-light' : 'jac-theme-dark';
+
+    allEditors.forEach(editor => {
+        monaco.editor.setTheme(themeToUse);
+    });
+}
+
 // Load Monaco Editor Globally
 function loadMonacoEditor() {
     if (monacoLoaded) return monacoLoadPromise;
@@ -100,13 +120,28 @@ function loadMonacoEditor() {
             fetch('/../playground/language-configuration.json')
                 .then(resp => resp.json())
                 .then(config => monaco.languages.setLanguageConfiguration('jac', config));
-            monaco.editor.defineTheme('jac-theme', {
+
+            // Define dark theme
+            monaco.editor.defineTheme('jac-theme-dark', {
                 base: 'vs-dark',
                 inherit: true,
-                rules: window.jacThemeRules,
-                colors: window.jacThemeColors
+                rules: window.jacThemeRulesDark,
+                colors: window.jacThemeColorsDark
             });
-            monaco.editor.setTheme('jac-theme');
+
+            // Define light theme
+            monaco.editor.defineTheme('jac-theme-light', {
+                base: 'vs',
+                inherit: true,
+                rules: window.jacThemeRulesLight,
+                colors: window.jacThemeColorsLight
+            });
+
+            // Set initial theme based on current MkDocs theme
+            const currentScheme = getCurrentTheme();
+            const initialTheme = currentScheme === 'default' ? 'jac-theme-light' : 'jac-theme-dark';
+            monaco.editor.setTheme(initialTheme);
+
             resolve();
         }, reject);
     });
@@ -165,10 +200,14 @@ async function setupCodeBlock(div) {
         serveButton.style.display = 'inline-block';
     }
 
+    // Determine initial theme
+    const currentScheme = getCurrentTheme();
+    const initialTheme = currentScheme === 'default' ? 'jac-theme-light' : 'jac-theme-dark';
+
     const editor = monaco.editor.create(container, {
         value: originalCode || '# Write your Jac code here',
         language: 'jac',
-        theme: 'jac-theme',
+        theme: initialTheme,
         scrollBeyondLastLine: false,
         scrollbar: {
             vertical: 'hidden',
@@ -183,6 +222,9 @@ async function setupCodeBlock(div) {
             bottom: 10
         }
     });
+
+    // Track this editor for theme updates
+    allEditors.push(editor);
 
     // Update editor height based on content
     function updateEditorHeight() {
@@ -353,6 +395,26 @@ domObserver.observe(document.body, {
 document.addEventListener("DOMContentLoaded", async () => {
     observeUninitializedCodeBlocks();
     initPyodideWorker();
+
+    // Watch for theme changes in Material for MkDocs
+    const themeObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'data-md-color-scheme') {
+                if (monacoLoaded) {
+                    updateMonacoTheme();
+                }
+            }
+        });
+    });
+
+    // Observe the body or html element for theme changes
+    const targetNode = document.querySelector('[data-md-color-scheme]') || document.body;
+    if (targetNode) {
+        themeObserver.observe(targetNode, {
+            attributes: true,
+            attributeFilter: ['data-md-color-scheme']
+        });
+    }
 });
 
 // Add nav link mutation observer for playground links

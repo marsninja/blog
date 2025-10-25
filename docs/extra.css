@@ -53,14 +53,14 @@
     margin-top: 0.5em;
     background: var(--md-code-bg-color);
     color: var(--md-code-fg-color);
-    padding: 0.5em;
+    padding: 10px;
     border-radius: 4px;
     border: 1px solid var(--md-default-fg-color--lightest);
     font-family: var(--md-code-font-family);
     max-height: 1000px;
     overflow: auto;
-    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s;
-    font-size: 15px;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s, background 0.2s, color 0.2s;
+    font-size: 13px;
 }
 
 .code-block .code-output[style*="display: none"] {
@@ -68,6 +68,83 @@
     padding: 0;
     overflow: hidden;
     margin-top: 0;
+}
+
+/* Input dialog styling */
+.code-block .input-dialog {
+    background: var(--md-code-bg-color);
+    border: 1px solid var(--md-accent-fg-color);
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px var(--md-shadow-z3);
+    transition: background 0.2s, border 0.2s;
+}
+
+.code-block .input-dialog .submit-input {
+    padding: 8px 14px;
+    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 12px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+    white-space: nowrap;
+}
+
+.code-block .input-dialog .submit-input:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
+}
+
+.code-block .input-dialog .cancel-input {
+    padding: 8px 14px;
+    background: linear-gradient(135deg, #666 0%, #555 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 12px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    white-space: nowrap;
+}
+
+.code-block .input-dialog .cancel-input:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, #777 0%, #666 100%);
+}
+
+.code-block .input-prompt {
+    color: var(--md-default-fg-color);
+    font-family: var(--md-text-font-family);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    min-width: fit-content;
+}
+
+.code-block .user-input {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--md-code-bg-color);
+    border: 1px solid var(--md-default-fg-color--lighter);
+    color: var(--md-default-fg-color);
+    border-radius: 6px;
+    font-family: var(--md-code-font-family);
+    font-size: 13px;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.code-block .user-input:focus {
+    border-color: var(--md-accent-fg-color) !important;
+    box-shadow: 0 0 0 2px var(--md-accent-fg-color--transparent) !important;
+    background: var(--md-code-bg-color) !important;
 }
 
 /* Logo - Full height in navbar */

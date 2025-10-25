@@ -170,15 +170,15 @@ async function setupCodeBlock(div) {
         <button class="md-button md-button--primary run-code-btn">Run</button>
         <button class="md-button md-button--primary serve-code-btn" style="background: linear-gradient(90deg, #0288d1 0%, #03a9f4 100%);">Serve</button>
     </div>
-    <div class="input-dialog" style="display: none; background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%); border: 1px solid #4a90e2; padding: 12px; margin: 8px 0; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.2);">
+    <div class="input-dialog" style="display: none;">
         <div style="display: flex; gap: 10px; align-items: center;">
-            <div class="input-prompt" style="color: #ffffff; font-family: 'Segoe UI', sans-serif; font-size: 13px; font-weight: 500; white-space: nowrap; min-width: fit-content;"></div>
-            <input type="text" class="user-input" style="flex: 1; padding: 8px 12px; background: rgba(255,255,255,0.08); border: 1px solid #444; color: #ffffff; border-radius: 6px; font-family: 'Consolas', monospace; font-size: 13px; transition: all 0.2s ease; outline: none;" placeholder="Enter input...">
-            <button class="submit-input" style="padding: 8px 14px; background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3); white-space: nowrap;">Submit</button>
-            <button class="cancel-input" style="padding: 8px 14px; background: linear-gradient(135deg, #666 0%, #555 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.2); white-space: nowrap;">Cancel</button>
+            <div class="input-prompt"></div>
+            <input type="text" class="user-input" placeholder="Enter input...">
+            <button class="submit-input">Submit</button>
+            <button class="cancel-input">Cancel</button>
         </div>
     </div>
-    <pre class="code-output" style="display:none; white-space: pre-wrap; background: #1e1e1e; color: #d4d4d4; padding: 10px;"></pre>
+    <pre class="code-output" style="display:none; white-space: pre-wrap;"></pre>
     `;
 
     const container = div.querySelector(".jac-code");
@@ -321,38 +321,6 @@ async function setupCodeBlock(div) {
 
     runButton.addEventListener("click", createButtonHandler("run"));
     serveButton.addEventListener("click", createButtonHandler("serve", "Starting serve mode...\n"));
-
-    userInput.addEventListener('focus', () => {
-        userInput.style.borderColor = '#4a90e2';
-        userInput.style.boxShadow = '0 0 0 2px rgba(74, 144, 226, 0.15)';
-        userInput.style.background = 'rgba(255,255,255,0.12)';
-    });
-
-    userInput.addEventListener('blur', () => {
-        userInput.style.borderColor = '#444';
-        userInput.style.boxShadow = 'none';
-        userInput.style.background = 'rgba(255,255,255,0.08)';
-    });
-
-    submitButton.addEventListener('mouseenter', () => {
-        submitButton.style.transform = 'translateY(-1px)';
-        submitButton.style.boxShadow = '0 4px 12px rgba(74, 144, 226, 0.4)';
-    });
-
-    submitButton.addEventListener('mouseleave', () => {
-        submitButton.style.transform = 'translateY(0)';
-        submitButton.style.boxShadow = '0 2px 8px rgba(74, 144, 226, 0.3)';
-    });
-
-    cancelButton.addEventListener('mouseenter', () => {
-        cancelButton.style.transform = 'translateY(-1px)';
-        cancelButton.style.background = 'linear-gradient(135deg, #777 0%, #666 100%)';
-    });
-
-    cancelButton.addEventListener('mouseleave', () => {
-        cancelButton.style.transform = 'translateY(0)';
-        cancelButton.style.background = 'linear-gradient(135deg, #666 0%, #555 100%)';
-    });
 }
 
 // Lazy load code blocks using Intersection Observer

@@ -1,6 +1,9 @@
 name: Build and Deploy Mars Blog
 
 on:
+  push:
+    branches:
+      - main
   release:
     types: [published]
   workflow_dispatch:
@@ -59,7 +62,10 @@ jobs:
       - name: Get tag name
         id: tag
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            # Push to main - use commit SHA short version
+            TAG="main-${GITHUB_SHA::7}"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             # Manual dispatch - use timestamp
             TAG="manual-$(date +%Y%m%d-%H%M%S)"
           elif [[ "${{ github.event_name }}" == "release" ]]; then

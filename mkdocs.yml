@@ -1,0 +1,80 @@
+site_name: My Jac Blog
+site_url: https://yourdomain.com
+repo_url: https://github.com/yourusername/blog
+use_directory_urls: true
+
+nav:
+  - Home: index.md
+  - Posts:
+    - Welcome: posts/welcome.md
+  - About: about.md
+
+theme:
+  name: material
+  custom_dir: overrides
+  palette:
+    scheme: slate
+    primary: black
+    accent: orange
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - content.code.copy
+    - navigation.instant: false
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.footer
+    - navigation.top
+
+markdown_extensions:
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+      pygments_style: autumn
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path: ["."]
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.arithmatex:
+      generic: true
+  - attr_list
+  - md_in_html
+  - admonition
+  - pymdownx.details
+  - tables
+  - toc:
+      permalink: "#"
+
+extra_css:
+  - extra.css
+
+extra:
+  generator: false
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/yourusername
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/yourusername
+
+copyright: Copyright &copy; 2025 Your Name
+
+extra_javascript:
+  - https://cdn.jsdelivr.net/pyodide/v0.27.0/full/pyodide.js
+  - https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js
+  - js/jac.monarch.js
+  - js/run-code.js
+
+plugins:
+  - search
+
+hooks:
+  - scripts/handle_jac_compile_data.py

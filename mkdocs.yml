@@ -3,7 +3,7 @@ site_url: https://mars.ninja
 use_directory_urls: true
 
 nav:
-  - Home: index.md
+  - blog/index.md
   - Blog:
     - blog/index.md
   - About: about.md
@@ -76,8 +76,8 @@ plugins:
       post_readtime_words_per_minute: 200
       archive: true
       archive_name: Archive
-      archive_date_format: yyyy
-      archive_url_date_format: yyyy
+      archive_date_format: MMMM yyyy
+      archive_url_date_format: yyyy/MM
       archive_url_format: "archive/{date}"
       categories: true
       categories_name: Categories

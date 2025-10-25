@@ -226,12 +226,12 @@ graph LR
 
 This is probably the most practical approach for many teams. Your core application logic lives in Jac, but you keep existing Python modules that already work well. That authentication module you spent months getting right? Keep it. The data pipeline that's already optimized? Leave it alone. Write new stuff in Jac where it makes sense.
 
-```python
+```jac
 # All python standard library compatible
 import os;
 import from math { sqrt }
 
-# Importing legacy python
+# Importing any legacy python code
 import from oldproject { UsefulClass, useful_func }
 ```
 

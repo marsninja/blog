@@ -260,6 +260,40 @@ graph LR
 
 When you're building something new from scratch, you might go all-in with Jac. Every module uses Jac syntax, which gives the compiler full visibility into your program's structure. This lets it do things like automatic service boundary detection and cross-module state synchronization. Pretty neat if you're starting fresh.
 
+<div class="code-block">
+```jac
+node Person {
+    has name: str;
+}
+
+walker FindPerson {
+    has target: str;
+
+    can start with `root entry {
+        visit [-->];
+    }
+
+    can search with Person entry {
+        if here.name == self.target {
+            print(f"Found {here.name}!");
+            disengage;  # Stops immediately
+        }
+        visit [-->];
+    }
+}
+
+with entry {
+    alice = Person(name="Alice");
+    bob = Person(name="Bob");
+    charlie = Person(name="Charlie");
+
+    root ++> alice ++> bob ++> charlie;
+
+    root spawn FindPerson(target="Bob");
+}
+```
+</div>
+
 **Mix and Match**
 
 These patterns play nicely together. A Pure Jac microservice can call a Python-First API server. You can start with Pure Python + Library decorators and gradually move to Jac-First as you get comfortable. Use whatever makes sense for your situation.

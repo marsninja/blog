@@ -23,17 +23,12 @@ A clean MkDocs blog setup with Jac syntax highlighting and interactive, runnable
    cd ~/blog
    ```
 
-2. **Install dependencies**:
-   ```bash
-   pip install mkdocs-material pymdown-extensions pygments mkdocs-video starlette uvicorn
-   ```
-
-3. **Install the Jac syntax highlighter**:
+2. **Install all dependencies and the Jac syntax highlighter**:
    ```bash
    pip install -e .
    ```
 
-   Or manually register the lexer by ensuring `jac_syntax_highlighter.py` is in your Python path.
+   This will install all required dependencies (mkdocs-material, pymdown-extensions, pygments, mkdocs-video, starlette, uvicorn) and register the Jac syntax highlighter.
 
 ## Usage
 

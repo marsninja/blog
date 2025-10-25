@@ -6,7 +6,12 @@ setup(
     description='Jac syntax highlighter for blog',
     py_modules=['jac_syntax_highlighter'],
     install_requires=[
-        'Pygments>=2.0',
+        'mkdocs-material>=9.0.0',
+        'pymdown-extensions>=10.0',
+        'pygments>=2.14.0',
+        'mkdocs-video>=1.5.0',
+        'starlette>=0.27.0',
+        'uvicorn>=0.23.0',
     ],
     entry_points={
         'pygments.lexers': [

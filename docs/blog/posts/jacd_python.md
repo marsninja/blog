@@ -160,82 +160,13 @@ The **byLLM** plugin provide the implementation for the `by` keyword, enabling s
 
 The **jac-cloud** plugin embodies an even more ambitious goal: write once, scale anywhere. It promises the ability to run the same code on a single machine or distributed across millions of machines without code changes. While still a work in progress, this plugin demonstrates how language-level abstractions can hide the complexity of distributed systems from developers.
 
-## Developer Adoption Philosophy: Extension, Not Replacement
+## Developer Adoption Philosophy: Gradual Jacification
 
 Jac's relationship with Python is worth understanding because it represents a deliberate choice. Instead of trying to replace Python or create yet another incompatible ecosystem, Jac extends Python while keeping everything compatible. This gives you some nice flexibility in how you use it.
 
 **Adoption Patterns: Pick What Works for You**
 
 Jac's design lets you adopt it in four different ways, depending on what makes sense for your project.
-
-**Pure Jac Project Pattern**
-
-```mermaid
-graph LR
-    subgraph "Pure Jac Project"
-        J5[main.jac]
-        J6[core.jac]
-        J7[agents.jac]
-        J8[workflows.jac]
-        J5 --> J6
-        J5 --> J7
-        J6 --> J8
-        J7 --> J8
-    end
-
-    style J5 stroke-width:3px
-    style J6 stroke-width:3px
-    style J7 stroke-width:3px
-    style J8 stroke-width:3px
-```
-
-When you're building something new from scratch, you might go all-in with Jac. Every module uses Jac syntax, which gives the compiler full visibility into your program's structure. This lets it do things like automatic service boundary detection and cross-module state synchronization. Pretty neat if you're starting fresh.
-
-**Jac-First Project Pattern**
-
-```mermaid
-graph LR
-    subgraph "Jac-First Project"
-        J2[app.jac]
-        J3[services.jac]
-        J4[ai_agent.jac]
-        P4[legacy_module.py]
-        J2 --> J3
-        J2 --> J4
-        J3 --> P4
-        J4 --> P4
-    end
-
-    style P4 stroke-width:2px,stroke-dasharray: 10 5
-    style J2 stroke-width:3px
-    style J3 stroke-width:3px
-    style J4 stroke-width:3px
-```
-
-This is probably the most practical approach for many teams. Your core application logic lives in Jac, but you keep existing Python modules that already work well. That authentication module you spent months getting right? Keep it. The data pipeline that's already optimized? Leave it alone. Write new stuff in Jac where it makes sense.
-
-**Python-First Project Pattern**
-
-```mermaid
-graph LR
-    subgraph "Python-First Project"
-        P1[main.py]
-        P2[utils.py]
-        P3[models.py]
-        J1[optimizer.jac]
-        P1 --> P2
-        P1 --> P3
-        P1 --> J1
-        P2 --> J1
-    end
-
-    style P1 stroke-width:2px,stroke-dasharray: 10 5
-    style P2 stroke-width:2px,stroke-dasharray: 10 5
-    style P3 stroke-width:2px,stroke-dasharray: 10 5
-    style J1 stroke-width:3px
-```
-
-Got a large Python codebase? This approach lets you add Jac surgically. Maybe one service needs different scaling, or one algorithm would benefit from Jac's concurrency model. You add a single `.jac` file, import it like any Python module, and everything else stays the same. Low risk, easy to try.
 
 **Pure Python + Library Pattern**
 
@@ -260,6 +191,76 @@ graph LR
 
 Don't want any new syntax at all? Fair enough. You can access Jac's features entirely through decorators, base classes, and function calls. You lose some compile-time optimizations, but if your organization has strong Python standards or adding a new file extension requires three meetings and a committee approval, this works great.
 
+**Python-First Project Pattern**
+
+```mermaid
+graph LR
+    subgraph "Python-First Project"
+        P1[main.py]
+        P2[utils.py]
+        P3[models.py]
+        J1[optimizer.jac]
+        P1 --> P2
+        P1 --> P3
+        P1 --> J1
+        P2 --> J1
+    end
+
+    style P1 stroke-width:2px,stroke-dasharray: 10 5
+    style P2 stroke-width:2px,stroke-dasharray: 10 5
+    style P3 stroke-width:2px,stroke-dasharray: 10 5
+    style J1 stroke-width:3px
+```
+
+Got a large Python codebase? This approach lets you add Jac surgically. Maybe one service needs different scaling, or one algorithm would benefit from Jac's concurrency model. You add a single `.jac` file, import it like any Python module, and everything else stays the same. Low risk, easy to try.
+
+**Jac-First Project Pattern**
+
+```mermaid
+graph LR
+    subgraph "Jac-First Project"
+        J2[app.jac]
+        J3[services.jac]
+        J4[ai_agent.jac]
+        P4[legacy_module.py]
+        J2 --> J3
+        J2 --> J4
+        J3 --> P4
+        J4 --> P4
+    end
+
+    style P4 stroke-width:2px,stroke-dasharray: 10 5
+    style J2 stroke-width:3px
+    style J3 stroke-width:3px
+    style J4 stroke-width:3px
+```
+
+This is probably the most practical approach for many teams. Your core application logic lives in Jac, but you keep existing Python modules that already work well. That authentication module you spent months getting right? Keep it. The data pipeline that's already optimized? Leave it alone. Write new stuff in Jac where it makes sense.
+
+**Pure Jac Project Pattern**
+
+```mermaid
+graph LR
+    subgraph "Pure Jac Project"
+        J5[main.jac]
+        J6[core.jac]
+        J7[agents.jac]
+        J8[workflows.jac]
+        J5 --> J6
+        J5 --> J7
+        J6 --> J8
+        J7 --> J8
+    end
+
+    style J5 stroke-width:3px
+    style J6 stroke-width:3px
+    style J7 stroke-width:3px
+    style J8 stroke-width:3px
+```
+
+When you're building something new from scratch, you might go all-in with Jac. Every module uses Jac syntax, which gives the compiler full visibility into your program's structure. This lets it do things like automatic service boundary detection and cross-module state synchronization. Pretty neat if you're starting fresh.
+
+**Mix and Match**
 
 These patterns play nicely together. A Pure Jac microservice can call a Python-First API server. You can start with Pure Python + Library decorators and gradually move to Jac-First as you get comfortable. Use whatever makes sense for your situation.
 
@@ -286,7 +287,7 @@ The runtime library's integration with Python's ecosystem means Jac programs can
 ```mermaid
 graph TD
     subgraph "Developer Choices"
-        A[Pure Python Modules]
+        A[Python Modules]
         B[Jac Modules]
         C[Mixed Codebases]
     end
@@ -297,18 +298,21 @@ graph TD
     end
     
     subgraph "What You Get"
-        G[Distributed Computing]
+        G[Scale-Native Abstraction]
         H[AI Integration]
-        I[Automatic Scaling]
+        I[Complexity Hiding]
     end
     
     A --> E
-    B --> D
     C --> D
+    B --> D
     C --> E
     D --> G
     D --> H
+    D --> I
     E --> I
+    E --> H
+    E --> G
 ```
 
 **System Software Layer**

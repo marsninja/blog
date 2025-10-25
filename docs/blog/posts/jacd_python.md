@@ -5,7 +5,7 @@ authors:
 categories:
   - Jac Programming
   - Tutorials
-slug: welcome-to-jac-programming
+slug: python-getting-jacd
 ---
 
 # How Does Python Get Jac'd with Jaseci?

@@ -1,5 +1,5 @@
 ---
-date: 2025-10-25
+date: 2025-09-17
 authors:
   - mars
 categories:
@@ -10,12 +10,15 @@ slug: welcome-to-jac-programming
 
 # How Does Python Get Jac'd with Jaseci?
 
-When explaining complex software architectures, there's this tendency to start with the grand vision and work down to implementation details. But honestly, for developers who actually need to use a tool, the opposite approach makes way more sense. This post explores Jac (also known as Jaclang), a programming language and runtime that extends Python rather than trying to replace it. We'll start with what you can actually install and use today, then work our way up to why it exists.
+When explaining complex software architectures, there's this tendency to start with the grand vision and work down to implementation details. But honestly, for developers who actually need to use a tool, the opposite approach makes way more sense. This post if for the Python developer exploring Jac, a programming language and runtime that extends Python rather than trying to replace it. We'll start with what you can actually install and use today, then work our way up to why it exists.
+
+[Watch on YouTube!](https://www.youtube.com/watch?v=psREgIezkJo)
 
 <!-- more -->
 
-[Watch on YouTube!](https://www.youtube.com/watch?v=psREgIezkJo)
 [![Watch the video](https://img.youtube.com/vi/psREgIezkJo/0.jpg)](https://www.youtube.com/watch?v=psREgIezkJo)
+
+
 
 The thinking behind Jac is pretty straightforward: we're still using programming abstractions from the 1980s and 1990s, but our applications look nothing like what we built back then. Pretty much every app today has cloud components, needs to scale, and increasingly includes AI stuff. Jac tries to provide new abstractions for these realities while staying compatible with Python.
 
@@ -30,21 +33,29 @@ pip install jaclang
 That's it. You get a pure Python library with zero dependencies. They vendored a few small things rather than maintaining a dependency chain, which is a nice touch for reliability. What this gets you is both a compiler and a runtime library, all written in pure Python that runs on the standard CPython VM.
 
 ```mermaid
-graph TD
-    A[pip install jaclang] --> B[Pure Python Library]
-    B --> C[Jac Compiler]
-    B --> D[Runtime Library]
-    C --> E[Generates Python Bytecode]
-    D --> F[Provides Extended Semantics]
-    E --> G[Executes on CPython VM]
-    F --> G
+graph TB
+    subgraph "Installation"
+        I[pip install jaclang]
+    end
+    subgraph "What You Get"
+        C[Jac Compiler]
+        R[Runtime Library]
+    end
+    subgraph "Execution Environment"
+        VM[CPython VM]
+    end
+    
+    I --> C
+    I --> R
+    C -->|Generates Bytecode| VM
+    R -->|Provides Semantics| VM
 ```
 
 ## The Architecture: How It Actually Works
 
 The interesting bit about Jac's architecture is how it uses Python's existing infrastructure while adding new capabilities. Instead of building a separate runtime or requiring a different execution environment, Jac compiles to Python bytecode that runs on the regular Python VM. This means you can use all your existing Python libraries and tools without any hassle.
 
-### Core Components and Their Interactions
+**Core Components and Their Interactions**
 
 | Component | Purpose | Implementation |
 |-----------|---------|----------------|
@@ -58,8 +69,8 @@ The relationship between these components creates a flexible yet powerful system
 ```mermaid
 graph LR
     subgraph "Development Layer"
-        J[Jac Programs] 
-        P[Python Programs]
+        J[Jac Modules] 
+        P[Python Modules]
     end
     
     subgraph "Compilation Layer"
@@ -75,12 +86,13 @@ graph LR
     J --> JC
     JC --> PB
     PB --> CPY
-    P --> CPY
+    P --> PB
+    P -.-> JC
     RT --> CPY
     PB -.->|Calls into| RT
 ```
 
-### The Import Hook Magic: PEP 302
+**The Import Hook Magic: PEP 302**
 
 One of Python's most underused features is PEP 302, which lets you modify how imports work. Jac uses this really well. When you import jaclang into any Python project, Jac becomes automatically enabled. Your project can then import and use Jac modules just like regular Python modules. The integration is smooth enough that Jac modules basically are Python modules, just with extra capabilities.
 
@@ -113,7 +125,7 @@ The flexibility here is pretty cool. Python already has bindings for basically e
 
 Jac's plugin system, modeled after pytest's successful plugin architecture, enables both the core team and the community to extend the language's capabilities without modifying the core compiler or runtime. This design promotes innovation while maintaining stability in the core system.
 
-### Current Plugin Landscape
+**Current Plugin Landscape**
 
 The Jac ecosystem currently includes several official plugins that demonstrate the power of this architecture:
 
@@ -124,7 +136,7 @@ graph TB
     end
     
     subgraph "Official Plugins"
-        PLLM[jac-llm - LLM Integration]
+        PLLM[byLLM - LLM Integration]
         PC[jac-cloud - Cloud Scaling]
         PS[jac-streamlit - Streamlit Support]
     end
@@ -144,19 +156,19 @@ graph TB
     style PS stroke-width:2px,stroke-dasharray: 5 5
 ```
 
-The **jac-llm** plugin introduces the `by` keyword, enabling seamless integration with large language models directly in the language syntax. This isn't just syntactic sugar—it represents a fundamental rethinking of how AI capabilities should be integrated into programming languages. Rather than treating AI as an external service called through APIs, Jac treats it as a first-class language construct.
+The **byLLM** plugin provide the implementation for the `by` keyword, enabling seamless integration with large language models directly in the language syntax. This isn't just syntactic sugar—it represents a fundamental rethinking of how AI capabilities should be integrated into programming languages. Rather than treating AI as an external service called through APIs, Jac treats it as a first-class language construct.
 
 The **jac-cloud** plugin embodies an even more ambitious goal: write once, scale anywhere. It promises the ability to run the same code on a single machine or distributed across millions of machines without code changes. While still a work in progress, this plugin demonstrates how language-level abstractions can hide the complexity of distributed systems from developers.
 
-## The Philosophy: Extension, Not Replacement
+## Developer Adoption Philosophy: Extension, Not Replacement
 
 Jac's relationship with Python is worth understanding because it represents a deliberate choice. Instead of trying to replace Python or create yet another incompatible ecosystem, Jac extends Python while keeping everything compatible. This gives you some nice flexibility in how you use it.
 
-### Adoption Patterns: Pick What Works for You
+**Adoption Patterns: Pick What Works for You**
 
 Jac's design lets you adopt it in four different ways, depending on what makes sense for your project.
 
-#### Pure Jac Project Pattern
+**Pure Jac Project Pattern**
 
 ```mermaid
 graph LR
@@ -179,7 +191,7 @@ graph LR
 
 When you're building something new from scratch, you might go all-in with Jac. Every module uses Jac syntax, which gives the compiler full visibility into your program's structure. This lets it do things like automatic service boundary detection and cross-module state synchronization. Pretty neat if you're starting fresh.
 
-#### Jac-First Project Pattern
+**Jac-First Project Pattern**
 
 ```mermaid
 graph LR
@@ -202,7 +214,7 @@ graph LR
 
 This is probably the most practical approach for many teams. Your core application logic lives in Jac, but you keep existing Python modules that already work well. That authentication module you spent months getting right? Keep it. The data pipeline that's already optimized? Leave it alone. Write new stuff in Jac where it makes sense.
 
-#### Python-First Project Pattern
+**Python-First Project Pattern**
 
 ```mermaid
 graph LR
@@ -225,7 +237,7 @@ graph LR
 
 Got a large Python codebase? This approach lets you add Jac surgically. Maybe one service needs different scaling, or one algorithm would benefit from Jac's concurrency model. You add a single `.jac` file, import it like any Python module, and everything else stays the same. Low risk, easy to try.
 
-#### Pure Python + Library Pattern
+**Pure Python + Library Pattern**
 
 ```mermaid
 graph LR
@@ -255,19 +267,19 @@ These patterns play nicely together. A Pure Jac microservice can call a Python-F
 
 So what does this actually mean for Python developers? The benefits show up at different levels of the stack, and which ones you get depends on how you adopt Jac.
 
-### Language Design Layer
+**Language Design Layer**
 
 At the language level, Jac introduces new ways to express common patterns in modern software. These aren't just syntax tweaks—they're different ways of thinking about problems. Being able to express  AI integration, distributed computing, and scaling through language constructs instead of library calls can make code a lot cleaner and easier to reason about.
 
 If you're using Pure Jac or Jac-First patterns, the compiler can see what your program is trying to do and optimize accordingly. Teams using the Pure Python + Library pattern get fewer compile-time optimizations but still benefit from the runtime features.
 
-### Compiler Infrastructure Layer
+**Compiler Infrastructure Layer**
 
 The compiler generates Python bytecode with embedded runtime calls, which enables optimizations you can't get with pure libraries. With higher-level semantic information, the compiler can make smarter decisions about implementation patterns.
 
 In Pure Jac projects, the compiler can analyze across modules, automatically figure out service boundaries, and find optimization opportunities. Even in Python-First projects with just one Jac module, that module gets these compiler optimizations internally.
 
-### Runtime Systems Layer
+**Runtime Systems Layer**
 
 The runtime library's integration with Python's ecosystem means Jac programs can use any existing Python library without issues. Need PyTorch for machine learning? Works fine. Kubernetes bindings for orchestration? No problem. Any of the hundreds of thousands of packages on PyPI? They all work with Jac code.
 
@@ -299,7 +311,7 @@ graph TD
     E --> I
 ```
 
-### System Software Layer
+**System Software Layer**
 
 Jac also aims to change how software runs on machines. Through its runtime library and plugin system, it can handle system-level concerns that usually require separate configuration and deployment steps. The idea of writing code that automatically scales from your laptop to production clusters without changes is pretty ambitious, but that's the direction they're heading.
 

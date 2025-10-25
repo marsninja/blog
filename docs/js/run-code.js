@@ -31,7 +31,7 @@ function initPyodideWorker() {
     return pyodideInitPromise;
 }
 
-function executeJacCodeInWorker(code, inputHandler, commandType = "run") {
+function executeJacCodeInWorker(code, inputHandler, commandType = "run", language = "jac") {
     return new Promise(async (resolve, reject) => {
         await initPyodideWorker();
         const handleMessage = async (event) => {
@@ -74,7 +74,7 @@ function executeJacCodeInWorker(code, inputHandler, commandType = "run") {
             }
         };
         pyodideWorker.addEventListener("message", handleMessage);
-        pyodideWorker.postMessage({ type: commandType, code });
+        pyodideWorker.postMessage({ type: commandType, code, language });
     });
 }
 
@@ -155,6 +155,7 @@ async function setupCodeBlock(div) {
 
     div._monacoInitialized = true;
     const originalCode = div.textContent.trim();
+    const language = div.getAttribute('data-lang') || 'jac';
 
     div.innerHTML = `
         <div class="jac-code-loading" style="padding: 10px; font-style: italic; color: gray;">
@@ -205,8 +206,8 @@ async function setupCodeBlock(div) {
     const initialTheme = currentScheme === 'default' ? 'jac-theme-light' : 'jac-theme-dark';
 
     const editor = monaco.editor.create(container, {
-        value: originalCode || '# Write your Jac code here',
-        language: 'jac',
+        value: originalCode || (language === 'python' ? '# Write your Python code here' : '# Write your Jac code here'),
+        language: language === 'python' ? 'python' : 'jac',
         theme: initialTheme,
         scrollBeyondLastLine: false,
         scrollbar: {
@@ -292,7 +293,7 @@ async function setupCodeBlock(div) {
             inputDialog.style.display = "none";
 
             if (!pyodideReady) {
-                const loadingMsg = "Loading Jac runner...";
+                const loadingMsg = language === 'python' ? "Loading Python runner..." : "Loading Jac runner...";
                 outputBlock.textContent += loadingMsg + (initialMessage ? "\n" : "");
                 await initPyodideWorker();
                 outputBlock.textContent = outputBlock.textContent.replace(loadingMsg + (initialMessage ? "\n" : ""), "");
@@ -309,7 +310,7 @@ async function setupCodeBlock(div) {
             try {
                 const codeToRun = editor.getValue();
                 const inputHandler = createInputHandler();
-                await executeJacCodeInWorker(codeToRun, inputHandler, commandType);
+                await executeJacCodeInWorker(codeToRun, inputHandler, commandType, language);
             } catch (error) {
                 outputBlock.textContent += `\nError: ${error}`;
             } finally {

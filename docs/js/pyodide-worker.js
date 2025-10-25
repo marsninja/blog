@@ -32,7 +32,7 @@ except Exception as e:
 
 // Worker code
 self.onmessage = async (event) => {
-    const { type, code, value, sab } = event.data;
+    const { type, code, value, sab, language } = event.data;
 
     if (type === "init") {
         sabRef = sab;
@@ -97,9 +97,39 @@ builtins.input = pyodide_input
     }
 
     try {
-        const jacCode = JSON.stringify(code);
+        const codeStr = JSON.stringify(code);
         const cliCommand = type === "serve" ? "serve" : "run";
-        const output = await pyodide.runPythonAsync(`
+        const lang = language || "jac";
+
+        if (lang === "python") {
+            // Run Python code directly
+            const output = await pyodide.runPythonAsync(`
+import sys
+
+# Set up streaming output
+streaming_stdout = StreamingOutput("stdout")
+streaming_stderr = StreamingOutput("stderr")
+original_stdout = sys.stdout
+original_stderr = sys.stderr
+
+sys.stdout = streaming_stdout
+sys.stderr = streaming_stderr
+
+python_code = ${codeStr}
+
+try:
+    exec(python_code)
+except Exception as e:
+    import traceback
+    print(traceback.format_exc(), file=sys.stderr)
+
+# Restore original streams
+sys.stdout = original_stdout
+sys.stderr = original_stderr
+            `);
+        } else {
+            // Run Jac code through CLI
+            const output = await pyodide.runPythonAsync(`
 from jaclang.cli.cli import run, serve
 import sys
 
@@ -112,7 +142,7 @@ original_stderr = sys.stderr
 sys.stdout = streaming_stdout
 sys.stderr = streaming_stderr
 
-jac_code = ${jacCode}
+jac_code = ${codeStr}
 with open("/tmp/temp.jac", "w") as f:
     f.write(jac_code)
 
@@ -127,7 +157,8 @@ except Exception as e:
 # Restore original streams
 sys.stdout = original_stdout
 sys.stderr = original_stderr
-        `);
+            `);
+        }
         self.postMessage({ type: "execution_complete" });
     } catch (error) {
         self.postMessage({ type: "error", error: error.toString() });

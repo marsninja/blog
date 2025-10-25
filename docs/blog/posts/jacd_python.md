@@ -12,13 +12,8 @@ slug: welcome-to-jac-programming
 
 When explaining complex software architectures, there's this tendency to start with the grand vision and work down to implementation details. But honestly, for developers who actually need to use a tool, the opposite approach makes way more sense. This post if for the Python developer exploring Jac, a programming language and runtime that extends Python rather than trying to replace it. We'll start with what you can actually install and use today, then work our way up to why it exists.
 
-[Watch on YouTube!](https://www.youtube.com/watch?v=psREgIezkJo)
 
 <!-- more -->
-
-[![Watch the video](https://img.youtube.com/vi/psREgIezkJo/0.jpg)](https://www.youtube.com/watch?v=psREgIezkJo)
-
-
 
 The thinking behind Jac is pretty straightforward: we're still using programming abstractions from the 1980s and 1990s, but our applications look nothing like what we built back then. Pretty much every app today has cloud components, needs to scale, and increasingly includes AI stuff. Jac tries to provide new abstractions for these realities while staying compatible with Python.
 
@@ -87,7 +82,7 @@ graph LR
     JC --> PB
     PB --> CPY
     P --> PB
-    P -.-> JC
+    P -.->|Optional| JC
     RT --> CPY
     PB -.->|Calls into| RT
 ```
@@ -97,6 +92,210 @@ graph LR
 One of Python's most underused features is PEP 302, which lets you modify how imports work. Jac uses this really well. When you import jaclang into any Python project, Jac becomes automatically enabled. Your project can then import and use Jac modules just like regular Python modules. The integration is smooth enough that Jac modules basically are Python modules, just with extra capabilities.
 
 What's nice about this is that existing Python projects can adopt Jac incrementally, module by module. You don't need to rewrite everything. A team can try out Jac in a single module while keeping the rest of their codebase in standard Python, see if they like it, then expand from there.
+
+## Developer Adoption Philosophy: Gradual Jac-ification
+
+Jac's relationship with Python is worth understanding because it represents a deliberate choice. Instead of trying to replace Python or create yet another incompatible ecosystem, Jac extends Python while keeping everything compatible. This gives you some nice flexibility in how you use it.
+
+**Adoption Patterns: Pick What Works for You**
+
+Jac's design lets you adopt it in four different ways, depending on what makes sense for your project.
+
+**Pure Python + Library Pattern**
+
+```mermaid
+graph LR
+    subgraph "Pure Python + Library"
+        P5["main.py<br/>@jac"]
+        P6["services.py<br/>@jac"]
+        P7["agents.py<br/>@jac"]
+        P8["config.py<br/>@jac"]
+        P5 --> P6
+        P5 --> P7
+        P6 --> P8
+        P7 --> P8
+    end
+
+    style P5 stroke-width:2px,stroke-dasharray: 10 5
+    style P6 stroke-width:2px,stroke-dasharray: 10 5
+    style P7 stroke-width:2px,stroke-dasharray: 10 5
+    style P8 stroke-width:2px,stroke-dasharray: 10 5
+```
+
+Don't want any new syntax at all? Fair enough. You can access Jac's features entirely through decorators, base classes, and function calls. You lose some compile-time optimizations, but if your organization has strong Python standards or adding a new file extension requires three meetings and a committee approval, this works great.
+
+Here is an example of pure python with jac as a library. Soon you'll see the pure Jac version. 
+<div class="code-block" data-lang="python">
+```python
+from __future__ import annotations
+from jaclang.lib import (
+    Node,
+    OPath,
+    Root,
+    Walker,
+    build_edge,
+    connect,
+    disengage,
+    on_entry,
+    refs,
+    root,
+    spawn,
+    visit,
+)
+
+
+class Person(Node):
+    name: str
+
+
+class FindPerson(Walker):
+    target: str
+
+    @on_entry
+    def start(self, here: Root) -> None:
+        visit(self, refs(OPath(here).edge_out().visit()))
+
+    @on_entry
+    def search(self, here: Person) -> None:
+        if here.name == self.target:
+            print(f"Found {here.name}!")
+            disengage(self)
+            return
+        visit(self, refs(OPath(here).edge_out().visit()))
+
+
+alice = Person(name="Alice")
+bob = Person(name="Bob")
+charlie = Person(name="Charlie")
+connect(left=connect(left=connect(left=root(), right=alice), right=bob), right=charlie)
+spawn(root(), FindPerson(target="Bob"))
+```
+</div>
+
+**Python-First Project Pattern**
+
+```mermaid
+graph LR
+    subgraph "Python-First Project"
+        P1[main.py]
+        P2[utils.py]
+        P3[models.py]
+        J1[optimizer.jac]
+        P1 --> P2
+        P1 --> P3
+        P1 --> J1
+        P2 --> J1
+    end
+
+    style P1 stroke-width:2px,stroke-dasharray: 10 5
+    style P2 stroke-width:2px,stroke-dasharray: 10 5
+    style P3 stroke-width:2px,stroke-dasharray: 10 5
+    style J1 stroke-width:3px
+```
+
+Got a large Python codebase? This approach lets you add Jac surgically. Maybe one service needs different scaling, or one algorithm would benefit from Jac's concurrency model. You add a single `.jac` file, import it like any Python module, and everything else stays the same. Low risk, easy to try.
+
+```python
+# Turns on importing jac modules
+import jaclang
+
+# Imports from people.jac
+from people import Person, FindPerson
+```
+
+**Jac-First Project Pattern**
+
+```mermaid
+graph LR
+    subgraph "Jac-First Project"
+        J2[app.jac]
+        J3[services.jac]
+        J4[ai_agent.jac]
+        P4[legacy_module.py]
+        J2 --> J3
+        J2 --> J4
+        J3 --> P4
+        J4 --> P4
+    end
+
+    style P4 stroke-width:2px,stroke-dasharray: 10 5
+    style J2 stroke-width:3px
+    style J3 stroke-width:3px
+    style J4 stroke-width:3px
+```
+
+This is probably the most practical approach for many teams. Your core application logic lives in Jac, but you keep existing Python modules that already work well. That authentication module you spent months getting right? Keep it. The data pipeline that's already optimized? Leave it alone. Write new stuff in Jac where it makes sense.
+
+```python
+# All python standard library compatible
+import os;
+import from math { sqrt }
+
+# Importing legacy python
+import from oldproject { UsefulClass, useful_func }
+```
+
+**Pure Jac Project Pattern**
+
+```mermaid
+graph LR
+    subgraph "Pure Jac Project"
+        J5[main.jac]
+        J6[core.jac]
+        J7[agents.jac]
+        J8[workflows.jac]
+        J5 --> J6
+        J5 --> J7
+        J6 --> J8
+        J7 --> J8
+    end
+
+    style J5 stroke-width:3px
+    style J6 stroke-width:3px
+    style J7 stroke-width:3px
+    style J8 stroke-width:3px
+```
+
+When you're building something new from scratch, you might go all-in with Jac. Every module uses Jac syntax, which gives the compiler full visibility into your program's structure. This lets it do things like automatic service boundary detection and cross-module state synchronization. Pretty neat if you're starting fresh.
+
+Here is the same program as above in Jac.
+<div class="code-block">
+```jac
+node Person {
+    has name: str;
+}
+
+walker FindPerson {
+    has target: str;
+
+    can start with `root entry {
+        visit [-->];
+    }
+
+    can search with Person entry {
+        if here.name == self.target {
+            print(f"Found {here.name}!");
+            disengage;  # Stops immediately
+        }
+        visit [-->];
+    }
+}
+
+with entry {
+    alice = Person(name="Alice");
+    bob = Person(name="Bob");
+    charlie = Person(name="Charlie");
+
+    root ++> alice ++> bob ++> charlie;
+
+    root spawn FindPerson(target="Bob");
+}
+```
+</div>
+
+**Mix and Match**
+
+These patterns play nicely together. A Pure Jac microservice can call a Python-First API server. You can start with Pure Python + Library decorators and gradually move to Jac-First as you get comfortable. Use whatever makes sense for your situation.
 
 ## The Runtime Library: Where Things Get Interesting
 
@@ -159,144 +358,6 @@ graph TB
 The **byLLM** plugin provide the implementation for the `by` keyword, enabling seamless integration with large language models directly in the language syntax. This isn't just syntactic sugar—it represents a fundamental rethinking of how AI capabilities should be integrated into programming languages. Rather than treating AI as an external service called through APIs, Jac treats it as a first-class language construct.
 
 The **jac-cloud** plugin embodies an even more ambitious goal: write once, scale anywhere. It promises the ability to run the same code on a single machine or distributed across millions of machines without code changes. While still a work in progress, this plugin demonstrates how language-level abstractions can hide the complexity of distributed systems from developers.
-
-## Developer Adoption Philosophy: Gradual Jacification
-
-Jac's relationship with Python is worth understanding because it represents a deliberate choice. Instead of trying to replace Python or create yet another incompatible ecosystem, Jac extends Python while keeping everything compatible. This gives you some nice flexibility in how you use it.
-
-**Adoption Patterns: Pick What Works for You**
-
-Jac's design lets you adopt it in four different ways, depending on what makes sense for your project.
-
-**Pure Python + Library Pattern**
-
-```mermaid
-graph LR
-    subgraph "Pure Python + Library"
-        P5["main.py<br/>@jac"]
-        P6["services.py<br/>@jac"]
-        P7["agents.py<br/>@jac"]
-        P8["config.py<br/>@jac"]
-        P5 --> P6
-        P5 --> P7
-        P6 --> P8
-        P7 --> P8
-    end
-
-    style P5 stroke-width:2px,stroke-dasharray: 10 5
-    style P6 stroke-width:2px,stroke-dasharray: 10 5
-    style P7 stroke-width:2px,stroke-dasharray: 10 5
-    style P8 stroke-width:2px,stroke-dasharray: 10 5
-```
-
-Don't want any new syntax at all? Fair enough. You can access Jac's features entirely through decorators, base classes, and function calls. You lose some compile-time optimizations, but if your organization has strong Python standards or adding a new file extension requires three meetings and a committee approval, this works great.
-
-**Python-First Project Pattern**
-
-```mermaid
-graph LR
-    subgraph "Python-First Project"
-        P1[main.py]
-        P2[utils.py]
-        P3[models.py]
-        J1[optimizer.jac]
-        P1 --> P2
-        P1 --> P3
-        P1 --> J1
-        P2 --> J1
-    end
-
-    style P1 stroke-width:2px,stroke-dasharray: 10 5
-    style P2 stroke-width:2px,stroke-dasharray: 10 5
-    style P3 stroke-width:2px,stroke-dasharray: 10 5
-    style J1 stroke-width:3px
-```
-
-Got a large Python codebase? This approach lets you add Jac surgically. Maybe one service needs different scaling, or one algorithm would benefit from Jac's concurrency model. You add a single `.jac` file, import it like any Python module, and everything else stays the same. Low risk, easy to try.
-
-**Jac-First Project Pattern**
-
-```mermaid
-graph LR
-    subgraph "Jac-First Project"
-        J2[app.jac]
-        J3[services.jac]
-        J4[ai_agent.jac]
-        P4[legacy_module.py]
-        J2 --> J3
-        J2 --> J4
-        J3 --> P4
-        J4 --> P4
-    end
-
-    style P4 stroke-width:2px,stroke-dasharray: 10 5
-    style J2 stroke-width:3px
-    style J3 stroke-width:3px
-    style J4 stroke-width:3px
-```
-
-This is probably the most practical approach for many teams. Your core application logic lives in Jac, but you keep existing Python modules that already work well. That authentication module you spent months getting right? Keep it. The data pipeline that's already optimized? Leave it alone. Write new stuff in Jac where it makes sense.
-
-**Pure Jac Project Pattern**
-
-```mermaid
-graph LR
-    subgraph "Pure Jac Project"
-        J5[main.jac]
-        J6[core.jac]
-        J7[agents.jac]
-        J8[workflows.jac]
-        J5 --> J6
-        J5 --> J7
-        J6 --> J8
-        J7 --> J8
-    end
-
-    style J5 stroke-width:3px
-    style J6 stroke-width:3px
-    style J7 stroke-width:3px
-    style J8 stroke-width:3px
-```
-
-When you're building something new from scratch, you might go all-in with Jac. Every module uses Jac syntax, which gives the compiler full visibility into your program's structure. This lets it do things like automatic service boundary detection and cross-module state synchronization. Pretty neat if you're starting fresh.
-
-<div class="code-block">
-```jac
-node Person {
-    has name: str;
-}
-
-walker FindPerson {
-    has target: str;
-
-    can start with `root entry {
-        visit [-->];
-    }
-
-    can search with Person entry {
-        if here.name == self.target {
-            print(f"Found {here.name}!");
-            disengage;  # Stops immediately
-        }
-        visit [-->];
-    }
-}
-
-with entry {
-    alice = Person(name="Alice");
-    bob = Person(name="Bob");
-    charlie = Person(name="Charlie");
-
-    root ++> alice ++> bob ++> charlie;
-
-    root spawn FindPerson(target="Bob");
-}
-```
-</div>
-
-**Mix and Match**
-
-These patterns play nicely together. A Pure Jac microservice can call a Python-First API server. You can start with Pure Python + Library decorators and gradually move to Jac-First as you get comfortable. Use whatever makes sense for your situation.
 
 ## Practical Implications for Python Developers
 
@@ -368,3 +429,9 @@ Jac shows that you can innovate in programming languages without throwing away e
 The project's architecture—from its zero-dependency installation to its plugin system—reflects practical design choices aimed at real-world adoption. The story of Jac's specific abstractions turning out to be the right ones will continue to evolve over time, but the approach of extending rather than replacing, of building on what works while reaching for new capabilities, makes a lot of sense IMO.
 
 For Python developers, Jac offers a chance to experiment with next-generation programming concepts without leaving familiar territory. As software continues to grow in complexity, tools that help manage that complexity while staying practical will become increasingly valuable. We clearly need new abstractions for modern software development.
+
+## Youtube Companion Video
+
+[Watch on YouTube!](https://www.youtube.com/watch?v=psREgIezkJo)
+
+[![Watch the video](https://img.youtube.com/vi/psREgIezkJo/0.jpg)](https://www.youtube.com/watch?v=psREgIezkJo)

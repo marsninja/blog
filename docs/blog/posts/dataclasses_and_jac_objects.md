@@ -12,9 +12,9 @@ slug: dataclasses-and-jac-objects
 
 Python's traditional class syntax has a problem: defining any class with fields requires excessive boilerplate. After decades of developers writing the same `__init__`, `__repr__`, and `__eq__` methods, Python 3.7 introduced dataclasses ([PEP 557](https://peps.python.org/pep-0557/)) as a decorator-based solution. But dataclasses are a retrofit—what if dataclass semantics were built into the language from the start?
 
-Jac explores this question by providing two archetype keywords: `class` for traditional Python semantics and `obj` for dataclass-style semantics as a first-class language feature.
-
 <!-- more -->
+
+Jac explores this question by providing two archetype keywords: `class` for traditional Python semantics and `obj` for dataclass-style semantics as a first-class language feature.
 
 ## The Boilerplate Problem
 
@@ -116,6 +116,7 @@ Here's the same `Person` in Jac:
 
 !!! example "Person Object"
     === "Jac"
+        <div class="code-block">
         ```jac
         obj Person {
             has name: str;
@@ -128,8 +129,10 @@ Here's the same `Person` in Jac:
             # Person(name='Alice', age=30, email='alice@example.com')
         }
         ```
+        </div>
 
     === "Python + Jac Library"
+        <div class="code-block" data-lang="python">
         ```python
         from __future__ import annotations
         from jaclang.lib import Obj
@@ -142,6 +145,7 @@ Here's the same `Person` in Jac:
         print(Person(name='Alice', age=30, email='alice@example.com'))
         # Person(name='Alice', age=30, email='alice@example.com')
         ```
+        </div>
 
 No decorator, no import, just clean declaration. The `obj` keyword signals dataclass semantics as a language-level construct.
 
@@ -149,6 +153,7 @@ No decorator, no import, just clean declaration. The `obj` keyword signals datac
 
 !!! example "Counter with Methods"
     === "Jac"
+        <div class="code-block">
         ```jac
         obj Counter {
             has count: int = 0;
@@ -174,8 +179,10 @@ No decorator, no import, just clean declaration. The `obj` keyword signals datac
             # c1: 2, c2: 1
         }
         ```
+        </div>
 
     === "Python + Jac Library"
+        <div class="code-block" data-lang="python">
         ```python
         from __future__ import annotations
         from jaclang.lib import Obj
@@ -199,6 +206,7 @@ No decorator, no import, just clean declaration. The `obj` keyword signals datac
         print(f'c1: {c1.get_count()}, c2: {c2.get_count()}')
         # c1: 2, c2: 1
         ```
+        </div>
 
 Each instance maintains independent state—`c1` and `c2` don't interfere because `obj` fields are instance variables by default.
 
@@ -209,6 +217,7 @@ Each instance maintains independent state—`c1` and `c2` don't interfere becaus
 
 !!! example "Product with Post-Initialization"
     === "Jac"
+        <div class="code-block">
         ```jac
         obj Product {
             has name: str;
@@ -236,8 +245,10 @@ Each instance maintains independent state—`c1` and `c2` don't interfere becaus
             # After restock: 15 units, $149.85
         }
         ```
+        </div>
 
     === "Python + Jac Library"
+        <div class="code-block" data-lang="python">
         ```python
         from __future__ import annotations
         from jaclang.lib import Obj, field
@@ -263,6 +274,7 @@ Each instance maintains independent state—`c1` and `c2` don't interfere becaus
         print(f'After restock: {product.quantity} units, ${product.total_value:.2f}')
         # After restock: 15 units, $149.85
         ```
+        </div>
 
 Compare to the Python version:
 - No decorator import
@@ -274,6 +286,7 @@ Compare to the Python version:
 
 !!! example "BankAccount with Static Members"
     === "Jac"
+        <div class="code-block">
         ```jac
         obj BankAccount {
             has account_number: str;
@@ -302,8 +315,10 @@ Compare to the Python version:
             # Total accounts: 2
         }
         ```
+        </div>
 
     === "Python + Jac Library"
+        <div class="code-block" data-lang="python">
         ```python
         from __future__ import annotations
         from jaclang.runtimelib.builtin import ClassVar
@@ -330,6 +345,7 @@ Compare to the Python version:
         print(f'Total accounts: {BankAccount.get_total()}')
         # Total accounts: 2
         ```
+        </div>
 
 The `static has` keyword makes class-level state explicit, and `:priv` provides access control as a language feature rather than convention.
 

@@ -9,7 +9,8 @@
 }
 
 .code-block .run-code-btn,
-.code-block .serve-code-btn {
+.code-block .serve-code-btn,
+.code-block .dot-code-btn {
     margin-top: 0.5em;
     padding: 0.4em 1.2em;
     background: linear-gradient(90deg, #ff9800 0%, #ffab40 100%);
@@ -46,6 +47,22 @@
 
 .code-block .serve-code-btn:active {
     background: #0288d1;
+    color: #fff;
+}
+
+.code-block .dot-code-btn {
+    background: linear-gradient(90deg, #b859e0ff 0%, #df76f1ff 100%);
+}
+
+.code-block .dot-code-btn:hover,
+.code-block .dot-code-btn:focus {
+    background: linear-gradient(90deg, #c76ae6 0%, #e58ff5 100%);
+    color: #111;
+    box-shadow: 0 4px 16px rgba(184, 89, 224, 0.25);
+}
+
+.code-block .dot-code-btn:active {
+    background: #7b1fa2;
     color: #fff;
 }
 
@@ -161,6 +178,66 @@
     display: block;
 }
 
+/* Graph visualization styles */
+.viz-viewport {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+    cursor: grab;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.viz-viewport.grabbing {
+    cursor: grabbing;
+}
+
+.graph-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 120;
+    display: flex;
+    gap: 6px;
+}
+
+.graph-reset-btn {
+    background: rgba(255, 255, 255, 0.95);
+    color: #333;
+    padding: 6px 10px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    transition: all 0.2s ease;
+}
+
+.graph-reset-btn:hover {
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.graph-container {
+    position: relative;
+}
+
+/* Responsive adjustments for small screens */
+@media (max-width: 600px) {
+    .graph-controls {
+        top: 4px;
+        right: 4px;
+    }
+
+    .graph-reset-btn {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+}
+
 /* Darker background for dark mode */
 [data-md-color-scheme="slate"] {
     --md-default-bg-color: #0a0a0a;
@@ -170,4 +247,14 @@
     --md-default-fg-color--lightest: hsla(0, 0%, 30%, 1);
     --md-code-bg-color: #121212;
     --md-code-fg-color: #e0e0e0;
+}
+
+/* Dark mode graph controls */
+[data-md-color-scheme="slate"] .graph-reset-btn {
+    background: rgba(50, 50, 50, 0.95);
+    color: #e0e0e0;
+}
+
+[data-md-color-scheme="slate"] .graph-reset-btn:hover {
+    background: rgba(60, 60, 60, 1);
 }

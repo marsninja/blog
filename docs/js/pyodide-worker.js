@@ -42,7 +42,7 @@ self.onmessage = async (event) => {
         pyodide = await loadPyodide();
         await loadPythonResources(pyodide);
         await pyodide.runPythonAsync(`
-from jaclang.cli.cli import run, serve
+from jaclang.cli.cli import run, serve, dot
 from js import postMessage, Atomics, Int32Array, Uint8Array, shared_buf
 import builtins
 import sys
@@ -103,7 +103,7 @@ builtins.input = pyodide_input
 
     try {
         const codeStr = JSON.stringify(code);
-        const cliCommand = type === "serve" ? "serve" : "run";
+        const cliCommand = type === "serve" ? "serve" : type === "dot" ? "dot" : "run";
         const lang = language || "jac";
 
         if (lang === "python") {
@@ -140,8 +140,8 @@ sys.stderr = original_stderr
         } else {
             // Run Jac code through CLI
             const output = await pyodide.runPythonAsync(`
-from jaclang.cli.cli import run, serve
-import sys
+from jaclang.cli.cli import run, serve, dot
+import sys, json, os
 
 # Set up streaming output
 streaming_stdout = StreamingOutput("stdout")
@@ -159,8 +159,33 @@ with open("/tmp/temp.jac", "w") as f:
 try:
     if "${cliCommand}" == "serve":
         serve("/tmp/temp.jac", faux=True)
+    elif "${cliCommand}" == "dot":
+        dot_path = "/home/pyodide/temp.dot"
+
+        if os.path.exists(dot_path):
+            try:
+                os.remove(dot_path)
+            except Exception as e:
+                print(f"Warning: Could not remove old DOT file: {e}", file=sys.stderr)
+
+        dot("/tmp/temp.jac")
+
+        if os.path.exists(dot_path):
+            with open(dot_path, "r") as f:
+                dot_content = f.read()
+            if not dot_content.strip():
+                print("Error: No DOT content generated.", file=sys.stderr)
+            else:
+                postMessage(json.dumps({"type": "dot", "dot": dot_content}))
+        else:
+            print("Error: DOT file not found after generation.", file=sys.stderr)
     else:
         run("/tmp/temp.jac")
+except SystemExit:
+    # The Jac compiler may call SystemExit on fatal errors (e.g., syntax errors).
+    # Detailed error reports are already emitted to stderr by the parser,
+    # so we suppress the exit here to avoid re-raising or duplicating messages.
+    pass
 except Exception as e:
     print(f"Error: {e}", file=sys.stderr)
 

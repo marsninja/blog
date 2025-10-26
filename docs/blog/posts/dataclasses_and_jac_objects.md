@@ -107,15 +107,10 @@ PEP 557 explicitly states that dataclasses should *"not interfere with any usage
 
 Rather than retrofitting dataclass semantics onto traditional classes, Jac provides two distinct archetype keywords:
 
-**`class`** - Traditional Python semantics:
-- Methods require **explicit `self` parameter with type annotation**
-- `has` fields with defaults become class variables initially
-- Used when class variables or traditional behavior is required
-
-**`obj`** - Dataclass semantics built-in:
-- Methods have **implicit `self`** (not in parameter list, available in body)
-- All `has` fields automatically become **instance variables**
-- Used for the common case where classes have fields
+| Archetype | Semantics | Self Parameter | Field Behavior | Use Case |
+|-----------|-----------|----------------|----------------|----------|
+| **`class`** | Traditional Python | Explicit with type annotation | `has` fields with defaults become class variables | Class variables or traditional behavior needed |
+| **`obj`** | Dataclass built-in | Implicit (available in body) | All `has` fields are instance variables | Common case where classes have fields |
 
 Here's the same `Person` in Jac:
 
@@ -166,6 +161,9 @@ with entry {
 </div>
 
 Each instance maintains independent state—`c1` and `c2` don't interfere because `obj` fields are instance variables by default.
+
+??? note "Jac's optional () syntax sugar"
+    Jac makes empty parentheses `()` optional in function/method declarations—`def increment` works the same as `def increment()`. Additionally, the return type annotation defaults to `-> None` if not specified, which is particularly clean for functions that don't return values. You can write `def increment { ... }` instead of `def increment() -> None { ... }`.
 
 ### The `Product` Example in Jac
 
@@ -242,7 +240,7 @@ The `static has` keyword makes class-level state explicit, and `:priv` provides 
 
 ## Why This Matters
 
-Dataclasses aren't just a convenience—they represent **fundamentally better class design**. The traditional Python class syntax with manual `__init__`, `__repr__`, and `__eq__` methods was always a design flaw, not a feature. Writing the same field name nine times isn't "explicit is better than implicit"—it's error-prone busywork.
+Dataclasses introduced in python 3.7 aren't just a convenience—they represent **fundamentally better class design**. The traditional Python class syntax with manual `__init__`, `__repr__`, and `__eq__` methods was always a design flaw, not a feature. Writing the same field name nine times isn't "explicit is better than implicit"—it's error-prone busywork.
 
 The proof is in adoption: dataclasses have become the default recommendation for new Python code. They're not just for "simple data containers"—they're better for virtually any class with fields. The boilerplate generation isn't sacrificing anything; it's eliminating redundancy while maintaining full class functionality.
 

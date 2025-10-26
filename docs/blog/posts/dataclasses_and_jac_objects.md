@@ -242,19 +242,22 @@ The `static has` keyword makes class-level state explicit, and `:priv` provides 
 
 ## Why This Matters
 
-The distinction between Python's decorator-based approach and Jac's keyword-based approach reflects different philosophies:
+Dataclasses aren't just a convenience—they represent **fundamentally better class design**. The traditional Python class syntax with manual `__init__`, `__repr__`, and `__eq__` methods was always a design flaw, not a feature. Writing the same field name nine times isn't "explicit is better than implicit"—it's error-prone busywork.
 
-**Python's Evolutionary Path**: Dataclasses emerged to minimize breaking changes. By implementing them as decorators, Python provides dataclass benefits while maintaining backward compatibility. This is pragmatic for a mature ecosystem but means dataclass semantics remain a transformation layer.
+The proof is in adoption: dataclasses have become the default recommendation for new Python code. They're not just for "simple data containers"—they're better for virtually any class with fields. The boilerplate generation isn't sacrificing anything; it's eliminating redundancy while maintaining full class functionality.
 
-**Jac's Design-First Approach**: Without legacy constraints, Jac asks: *"What should the default be?"* For the majority of classes that have fields, `obj` provides:
+**The question becomes**: If dataclasses are fundamentally better, why are they a decorator rather than the default?
 
-- **No runtime magic** - Compile-time understanding of structure
-- **Implicit `self`** - Cleaner method signatures
-- **Instance variables by default** - No mutable default gotchas
-- **Explicit static members** - `static has` clearly separates class-level state
-- **Built-in access modifiers** - `:pub`, `:priv`, `:prot` as language features
+The answer is Python's evolutionary constraint. With millions of lines of existing code using traditional classes, Python couldn't change the default behavior of the `class` keyword. Decorators were the pragmatic path to introduce better semantics without breaking existing code.
 
-This isn't about "fixing" dataclasses—it's exploring what becomes possible when dataclass-style semantics are a foundational language feature rather than a library addition.
+**Jac's advantage** is starting fresh. Without legacy constraints, `obj` makes dataclass-style semantics the natural way to define classes with fields:
+
+- **No decorator ceremony** - The better approach is built-in, not opt-in
+- **Cleaner syntax** - Implicit `self`, `by postinit` instead of `field(init=False)`
+- **Explicit intent** - `static has` distinguishes class variables from the instance variable default
+- **Language-level features** - Access modifiers and instance variables as first-class concepts
+
+If Python could redesign classes from scratch today, they'd likely look a lot more like Jac's `obj` than the current `class` syntax. Jac explores what becomes possible when you build the better design into the language from day one.
 
 ## Comparison
 

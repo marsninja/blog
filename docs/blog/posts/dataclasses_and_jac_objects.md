@@ -114,51 +114,91 @@ Rather than retrofitting dataclass semantics onto traditional classes, Jac provi
 
 Here's the same `Person` in Jac:
 
-<div class="code-block">
-```jac
-obj Person {
-    has name: str;
-    has age: int;
-    has email: str;
-}
+!!! example "Person Object"
+    === "Jac"
+        ```jac
+        obj Person {
+            has name: str;
+            has age: int;
+            has email: str;
+        }
 
-with entry {
-    print(Person(name="Alice", age=30, email="alice@example.com"));
-}
-```
-</div>
+        with entry {
+            print(Person(name="Alice", age=30, email="alice@example.com"));
+            # Person(name='Alice', age=30, email='alice@example.com')
+        }
+        ```
+
+    === "Python + Jac Library"
+        ```python
+        from __future__ import annotations
+        from jaclang.lib import Obj
+
+        class Person(Obj):
+            name: str
+            age: int
+            email: str
+
+        print(Person(name='Alice', age=30, email='alice@example.com'))
+        # Person(name='Alice', age=30, email='alice@example.com')
+        ```
 
 No decorator, no import, just clean declaration. The `obj` keyword signals dataclass semantics as a language-level construct.
 
 ### Key Differences from Python
 
-<div class="code-block">
-```jac
-obj Counter {
-    has count: int = 0;
+!!! example "Counter with Methods"
+    === "Jac"
+        ```jac
+        obj Counter {
+            has count: int = 0;
 
-    def increment {  # No self parameter in signature
-        self.count += 1;  # But self is available in body
-    }
+            def increment {  # No self parameter in signature
+                self.count += 1;  # But self is available in body
+            }
 
-    def get_count -> int {
-        return self.count;
-    }
-}
+            def get_count -> int {
+                return self.count;
+            }
+        }
 
-with entry {
-    c1 = Counter();
-    c1.increment();
-    c1.increment();
+        with entry {
+            c1 = Counter();
+            c1.increment();
+            c1.increment();
 
-    c2 = Counter();
-    c2.increment();
+            c2 = Counter();
+            c2.increment();
 
-    print(f"c1: {c1.get_count()}, c2: {c2.get_count()}");
-    # c1: 2, c2: 1
-}
-```
-</div>
+            print(f"c1: {c1.get_count()}, c2: {c2.get_count()}");
+            # c1: 2, c2: 1
+        }
+        ```
+
+    === "Python + Jac Library"
+        ```python
+        from __future__ import annotations
+        from jaclang.lib import Obj
+
+        class Counter(Obj):
+            count: int = 0
+
+            def increment(self) -> None:
+                self.count += 1
+
+            def get_count(self) -> int:
+                return self.count
+
+        c1 = Counter()
+        c1.increment()
+        c1.increment()
+
+        c2 = Counter()
+        c2.increment()
+
+        print(f'c1: {c1.get_count()}, c2: {c2.get_count()}')
+        # c1: 2, c2: 1
+        ```
 
 Each instance maintains independent state—`c1` and `c2` don't interfere because `obj` fields are instance variables by default.
 
@@ -167,35 +207,62 @@ Each instance maintains independent state—`c1` and `c2` don't interfere becaus
 
 ### The `Product` Example in Jac
 
-<div class="code-block">
-```jac
-obj Product {
-    has name: str;
-    has price: float;
-    has quantity: int = 0;
-    has total_value: float by postinit;  # Computed field
+!!! example "Product with Post-Initialization"
+    === "Jac"
+        ```jac
+        obj Product {
+            has name: str;
+            has price: float;
+            has quantity: int = 0;
+            has total_value: float by postinit;  # Computed field
 
-    def postinit {
-        self.total_value = self.price * self.quantity;
-    }
+            def postinit {
+                self.total_value = self.price * self.quantity;
+            }
 
-    def restock(amount: int) {
-        self.quantity += amount;
-        self.total_value = self.price * self.quantity;
-    }
-}
+            def restock(amount: int) {
+                self.quantity += amount;
+                self.total_value = self.price * self.quantity;
+            }
+        }
 
-with entry {
-    product = Product(name="Widget", price=9.99, quantity=10);
-    print(f"{product.name}: ${product.total_value:.2f}");
-    # Widget: $99.90
+        with entry {
+            product = Product(name="Widget", price=9.99, quantity=10);
+            print(f"{product.name}: ${product.total_value:.2f}");
+            # Widget: $99.90
 
-    product.restock(5);
-    print(f"After restock: {product.quantity} units, ${product.total_value:.2f}");
-    # After restock: 15 units, $149.85
-}
-```
-</div>
+            product.restock(5);
+            print(f"After restock: {product.quantity} units, ${product.total_value:.2f}");
+            # After restock: 15 units, $149.85
+        }
+        ```
+
+    === "Python + Jac Library"
+        ```python
+        from __future__ import annotations
+        from jaclang.lib import Obj, field
+
+        class Product(Obj):
+            name: str
+            price: float
+            quantity: int = 0
+            total_value: float = field(init=False)
+
+            def __post_init__(self) -> None:
+                self.total_value = self.price * self.quantity
+
+            def restock(self, amount: int) -> None:
+                self.quantity += amount
+                self.total_value = self.price * self.quantity
+
+        product = Product(name='Widget', price=9.99, quantity=10)
+        print(f'{product.name}: ${product.total_value:.2f}')
+        # Widget: $99.90
+
+        product.restock(5)
+        print(f'After restock: {product.quantity} units, ${product.total_value:.2f}')
+        # After restock: 15 units, $149.85
+        ```
 
 Compare to the Python version:
 - No decorator import
@@ -205,36 +272,64 @@ Compare to the Python version:
 
 ### Static Members and Access Control
 
-<div class="code-block">
-```jac
-obj BankAccount {
-    has account_number: str;
-    has :priv balance: float = 0.0;  # Private field
+!!! example "BankAccount with Static Members"
+    === "Jac"
+        ```jac
+        obj BankAccount {
+            has account_number: str;
+            has :priv balance: float = 0.0;  # Private field
 
-    static has total_accounts: int = 0;  # Class-level state
+            static has total_accounts: int = 0;  # Class-level state
 
-    def postinit {
-        BankAccount.total_accounts += 1;
-    }
+            def postinit {
+                BankAccount.total_accounts += 1;
+            }
 
-    static def get_total -> int {
-        return BankAccount.total_accounts;
-    }
+            static def get_total -> int {
+                return BankAccount.total_accounts;
+            }
 
-    def deposit(amount: float) {
-        self.balance += amount;
-    }
-}
+            def deposit(amount: float) {
+                self.balance += amount;
+            }
+        }
 
-with entry {
-    acc1 = BankAccount(account_number="A001");
-    acc2 = BankAccount(account_number="A002");
+        with entry {
+            acc1 = BankAccount(account_number="A001");
+            acc2 = BankAccount(account_number="A002");
 
-    print(f"Total accounts: {BankAccount.get_total()}");
-    # Total accounts: 2
-}
-```
-</div>
+            print(f"Total accounts: {BankAccount.get_total()}");
+            # Total accounts: 2
+        }
+        ```
+
+    === "Python + Jac Library"
+        ```python
+        from __future__ import annotations
+        from jaclang.runtimelib.builtin import ClassVar
+        from jaclang.lib import Obj
+
+        class BankAccount(Obj):
+            account_number: str
+            balance: float = 0.0
+            total_accounts: ClassVar[int] = 0
+
+            def __post_init__(self) -> None:
+                BankAccount.total_accounts += 1
+
+            @staticmethod
+            def get_total() -> int:
+                return BankAccount.total_accounts
+
+            def deposit(self, amount: float) -> None:
+                self.balance += amount
+
+        acc1 = BankAccount(account_number='A001')
+        acc2 = BankAccount(account_number='A002')
+
+        print(f'Total accounts: {BankAccount.get_total()}')
+        # Total accounts: 2
+        ```
 
 The `static has` keyword makes class-level state explicit, and `:priv` provides access control as a language feature rather than convention.
 

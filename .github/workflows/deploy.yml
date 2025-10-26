@@ -131,23 +131,3 @@ jobs:
             --push \
             .
 
-  summary:
-    needs: [deploy-mars-blog]
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - name: Build and Push Summary
-        run: |
-          echo "## Mars Blog Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          echo "### Blog Website" >> $GITHUB_STEP_SUMMARY
-          echo "- **Image Tag**: ${{ needs.deploy-mars-blog.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **ECR Repository**: 776241927220.dkr.ecr.us-east-2.amazonaws.com/mars-blog" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status**: ${{ needs.deploy-mars-blog.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Production URLs**:" >> $GITHUB_STEP_SUMMARY
-          echo "  - https://mars.ninja" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          echo "**Note**: Deployment will be handled automatically by Flux in jaseci-cluster." >> $GITHUB_STEP_SUMMARY
-

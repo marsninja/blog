@@ -20,7 +20,7 @@ Let's explore why Python classes are broken, how dataclasses attempt to fix them
 
 ## The Problem: Python Classes Are Verbose and Error-Prone
 
-Let's start with the elephant in the room. Here's how you define a simple data container in classic Python:
+Let's start with the elephant in the room. Here's how you define a simple data container in classic Python—a `Person` class that stores three fields and implements basic equality checking and a readable string representation:
 
 <div class="code-block" data-lang="python">
 ```python
@@ -39,6 +39,15 @@ class Person:
         return (self.name == other.name and
                 self.age == other.age and
                 self.email == other.email)
+
+# Usage
+p1 = Person("Alice", 30, "alice@example.com")
+print(p1)
+# Person(name='Alice', age=30, email='alice@example.com')
+
+p2 = Person("Alice", 30, "alice@example.com")
+print(f"p1 == p2: {p1 == p2}")
+# p1 == p2: True
 ```
 </div>
 
@@ -93,6 +102,15 @@ class Person:
 # - __eq__
 # - __hash__ (if frozen=True)
 # - __lt__, __le__, etc. (if order=True)
+
+# Usage
+p1 = Person("Alice", 30, "alice@example.com")
+print(p1)
+# Person(name='Alice', age=30, email='alice@example.com')
+
+p2 = Person("Alice", 30, "alice@example.com")
+print(f"p1 == p2: {p1 == p2}")
+# p1 == p2: True
 ```
 </div>
 
@@ -103,6 +121,8 @@ This is **significantly better**. We've gone from 15+ lines to 4 lines. The fiel
 Let's explore what dataclasses can do:
 
 #### 1. Default Values
+
+Default values let you create instances without specifying every parameter—critical for configuration classes and optional settings:
 
 <div class="code-block" data-lang="python">
 ```python
@@ -126,9 +146,11 @@ print(config2)
 ```
 </div>
 
-**Clean and intuitive.** Default values work exactly as you'd expect.
+**Key point**: Default values work exactly as you'd expect—fields with defaults can be omitted, while others are still required.
 
 #### 2. Immutability with `frozen=True`
+
+The `frozen=True` parameter makes instances immutable after creation—they can't be modified, which makes them hashable and safe for use in sets and as dictionary keys:
 
 <div class="code-block" data-lang="python">
 ```python
@@ -152,9 +174,11 @@ print(f"Unique points: {len(points)}")
 ```
 </div>
 
-Immutable objects are safer in concurrent code and can be used as dictionary keys. With regular classes, you'd need to manually implement `__setattr__` and `__delattr__`.
+**Key point**: Frozen dataclasses are immutable and automatically hashable. With regular classes, you'd need to manually implement `__setattr__`, `__delattr__`, and `__hash__`.
 
 #### 3. Ordering with `order=True`
+
+The `order=True` parameter automatically generates comparison methods (`__lt__`, `__le__`, `__gt__`, `__ge__`), enabling instances to be sorted. Comparison is done field-by-field in declaration order:
 
 <div class="code-block" data-lang="python">
 ```python
@@ -182,7 +206,11 @@ for s in students:
 ```
 </div>
 
+**Key point**: Students are sorted alphabetically by name first, then by grade. Without `order=True`, you'd need to manually implement all comparison methods.
+
 #### 4. Post-Initialization with `__post_init__`
+
+Sometimes you need fields that are computed from other fields rather than passed to the constructor. The `__post_init__` method runs after the auto-generated `__init__`, perfect for derived values and validation:
 
 <div class="code-block" data-lang="python">
 ```python
@@ -203,9 +231,11 @@ print(f"{rect.width} x {rect.height} = {rect.area}")
 ```
 </div>
 
-The `__post_init__` method runs after `__init__`, allowing computed fields and validation.
+**Key point**: The `area` field is excluded from `__init__` via `field(init=False)` but gets calculated automatically in `__post_init__` from the provided width and height.
 
 #### 5. Field Metadata and Factory Functions
+
+Mutable default values (like lists or dicts) are dangerous in Python—they get shared across all instances! The `default_factory` parameter solves this by calling a function to create a fresh object for each instance:
 
 <div class="code-block" data-lang="python">
 ```python
@@ -233,9 +263,11 @@ print(f"{cart2.customer}: {cart2.items}")  # Bob: ['Banana']
 ```
 </div>
 
-**Critical detail**: Use `default_factory` for mutable defaults. Never use `items: List[str] = []` directly—that creates a shared list across all instances!
+**Key point**: Each cart gets its own separate list via `default_factory=list`. If you used `items: List[str] = []` directly, both carts would share the same list—a classic Python gotcha!
 
 #### 6. Inheritance
+
+Dataclasses support inheritance naturally—child classes automatically include parent fields in their constructor and generated methods:
 
 <div class="code-block" data-lang="python">
 ```python
@@ -261,7 +293,7 @@ print(dog.bark())
 ```
 </div>
 
-Dataclass inheritance works naturally—child classes extend parent fields.
+**Key point**: The `Dog` class automatically inherits `name` and `age` from `Animal`, and the generated `__init__` accepts all three parameters in order (parent fields first, then child fields).
 
 ### The Dataclass Design Philosophy
 
@@ -302,7 +334,7 @@ In Jac, the `obj` keyword provides dataclass semantics as a first-class language
 
 ### The `obj` Keyword: Dataclasses as First-Class Citizens
 
-Here's the same `Person` in Jac:
+Here's the same `Person` class in Jac—notice how clean it is without decorators or imports, and how the auto-generated `__repr__` works just like Python's dataclass:
 
 <div class="code-block">
 ```jac
@@ -329,7 +361,7 @@ Let's break down what's happening:
 
 ### Key Insight: `obj` Uses Implicit `self`
 
-One elegant touch: methods in `obj` don't require `self` in the parameter list—it's automatically available:
+One elegant touch in Jac: methods in `obj` don't require `self` in the parameter list—it's automatically available in the method body. This demonstrates how instance variables work independently for each object:
 
 <div class="code-block">
 ```jac
@@ -360,6 +392,8 @@ with entry {
 ```
 </div>
 
+**Key point**: Each `Counter` instance (`c1`, `c2`) maintains its own separate `count` value—they don't interfere with each other. The method signature `def increment` is cleaner without the explicit `self` parameter.
+
 ```mermaid
 graph LR
     subgraph "Python Dataclass"
@@ -379,6 +413,8 @@ graph LR
 ### Jac's `obj` Features: The Full Picture
 
 #### 1. Clean Method Definitions
+
+Methods in Jac objects are straightforward—define them with return types, access instance fields via `self`, and call them naturally:
 
 <div class="code-block">
 ```jac
@@ -409,9 +445,11 @@ with entry {
 ```
 </div>
 
-Methods are clean—no `self` parameter clutter, but it's available when you need it.
+**Key point**: Methods have clean signatures (no `self` parameter), explicit return type annotations (`-> float`), and can call other methods naturally. The `describe` method demonstrates accessing both fields and computed methods.
 
 #### 2. Post-Initialization with `postinit`
+
+For derived or computed fields, use `by postinit` to exclude them from the constructor. The `postinit` method runs automatically after construction:
 
 <div class="code-block">
 ```jac
@@ -438,9 +476,11 @@ with entry {
 ```
 </div>
 
-The `by postinit` syntax tells Jac to skip this field in the constructor and initialize it in the `postinit` method.
+**Key point**: The constructor only takes `radius` as a parameter—`area` and `circumference` are marked with `by postinit` so they're computed automatically from `radius`. This is cleaner than Python's `field(init=False)` syntax.
 
 #### 3. Static Members
+
+Static members (fields and methods) belong to the class itself, not individual instances. They're perfect for tracking class-level state or utility functions:
 
 <div class="code-block">
 ```jac
@@ -478,9 +518,11 @@ with entry {
 ```
 </div>
 
-Static members provide class-level state and behavior—shared across all instances.
+**Key point**: The `total_accounts` static field is shared across all instances—every time a new `BankAccount` is created, the counter increments. Static methods like `get_total_accounts()` are called on the class itself, not on instances.
 
 #### 4. Inheritance
+
+Jac objects support inheritance—child objects automatically include parent fields and can override parent methods:
 
 <div class="code-block">
 ```jac
@@ -511,9 +553,11 @@ with entry {
 ```
 </div>
 
-Inheritance works naturally—child objects extend parent fields and can override methods.
+**Key point**: `Dog` inherits `name` and `age` from `Animal`, adds its own `breed` field, and overrides the `speak` method. The constructor automatically accepts all fields (parent fields first: `name`, `age`, then child field: `breed`).
 
 #### 5. Access Modifiers
+
+Jac provides built-in access control with `:pub` (public), `:prot` (protected), and `:priv` (private) modifiers for encapsulation:
 
 <div class="code-block">
 ```jac
@@ -537,11 +581,11 @@ with entry {
 ```
 </div>
 
-Access modifiers (`:pub`, `:prot`, `:priv`) provide encapsulation at the language level.
+**Key point**: Access modifiers control field visibility. Public fields (`:pub`) can be accessed from anywhere, protected (`:prot`) from subclasses, and private (`:priv`) only within the class itself. This is built into the language, unlike Python's convention-based underscore prefixes.
 
 ### Side-by-Side: Python Dataclass vs Jac `obj`
 
-Let's compare a real example:
+Let's compare a real-world example that demonstrates post-initialization, default values, and method definitions. Both implementations create a `Product` class with automatic total value calculation and a restock method that updates inventory:
 
 <div class="code-block" data-lang="python">
 ```python
@@ -630,7 +674,7 @@ graph LR
 
 ## A Complete Example: Product Inventory
 
-Let's see `obj` in a realistic scenario:
+Let's see `obj` in a realistic scenario that brings together all the features we've covered: nested objects (Product contains Category), computed fields via `postinit`, instance methods for business logic (sell, restock), static members for tracking class-level state, and collections. This inventory management system demonstrates how clean and expressive Jac code can be:
 
 <div class="code-block">
 ```jac

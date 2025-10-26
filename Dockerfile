@@ -1,32 +1,61 @@
-# Build stage
+FROM python:3.12-slim# Build stage
+
 FROM python:3.11-slim as builder
 
-# Set working directory
-WORKDIR /app
+# Install system dependencies
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
+RUN apt-get update && apt-get install -y \# Set working directory
+
+    curl \WORKDIR /app
+
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
-COPY setup.py .
-COPY jac_syntax_highlighter.py .
-COPY mkdocs.yml .
+# Install build dependencies
+
+# Set working directoryRUN apt-get update && apt-get install -y --no-install-recommends \
+
+WORKDIR /app    git \
+
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy documentation files
+
+COPY docs/ ./docs/# Copy requirements
+
+COPY scripts/ ./scripts/COPY setup.py .
+
+COPY setup.py .COPY jac_syntax_highlighter.py .
+
+COPY jac_syntax_highlighter.py .COPY mkdocs.yml .
+
+COPY mkdocs.yml .COPY README.md .
+
 COPY README.md .
 
 # Install dependencies
+
+# Install Python dependenciesRUN pip install --no-cache-dir -e .
+
 RUN pip install --no-cache-dir -e .
 
 # Copy docs and scripts
-COPY docs/ docs/
-COPY scripts/ scripts/
 
-# Build the site
-RUN mkdocs build
+# Expose port 8000COPY docs/ docs/
 
-# Production stage
-FROM nginx:alpine
+EXPOSE 8000COPY scripts/ scripts/
+
+
+
+# Health check# Build the site
+
+HEALTHCHECK --interval=30s --timeout=3s CMD curl -f http://localhost:8000/health || exit 1RUN mkdocs build
+
+
+
+# Start the custom mkdocs server# Production stage
+
+CMD ["python", "scripts/mkdocs_serve.py"]FROM nginx:alpine
+
 
 # Copy built site from builder
 COPY --from=builder /app/site /usr/share/nginx/html

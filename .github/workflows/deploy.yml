@@ -7,6 +7,9 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+  schedule:
+    # Rebuild documentation daily at 2 AM UTC
+    - cron: '0 2 * * *'
 
 permissions:
   contents: read
@@ -21,6 +24,8 @@ jobs:
       # Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full git history for changelog generation
 
       # Set up QEMU for multi-architecture builds
       - name: Set up QEMU
@@ -29,6 +34,27 @@ jobs:
       # Set up Docker Buildx for multi-architecture builds
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      # Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      # Cache pip dependencies
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # Install documentation dependencies
+      - name: Install documentation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
 
       # Configure AWS credentials using access keys
       - name: Configure AWS Credentials
@@ -47,10 +73,7 @@ jobs:
       - name: Get tag name
         id: tag
         run: |
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            # Push to main - use commit SHA short version
-            TAG="main-${GITHUB_SHA::7}"
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             # Manual dispatch - use timestamp
             TAG="manual-$(date +%Y%m%d-%H%M%S)"
           elif [[ "${{ github.event_name }}" == "release" ]]; then
@@ -63,15 +86,33 @@ jobs:
             else
               TAG="$TAG_NAME"
             fi
+          elif [[ "${{ github.event_name }}" == "schedule" ]]; then
+            # For scheduled builds, use date-based versioning
+            TAG="nightly-$(date +'%Y%m%d')"
           else
-            # Fallback
-            TAG="latest"
+            # For push builds to main
+            TAG="main-${GITHUB_SHA::7}"
           fi
           
           echo "Tag: $TAG"
           echo "Event: ${{ github.event_name }}"
           echo "Original Tag Name: ${TAG_NAME:-N/A}"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      # Prepare documentation for serving
+      - name: Prepare documentation for serving
+        run: |
+          echo "Preparing MkDocs for serving..."
+
+          # Create build info file in docs directory
+          echo "Build Information:" > docs/build-info.txt
+          echo "Version: ${{ steps.tag.outputs.tag }}" >> docs/build-info.txt
+          echo "Built: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> docs/build-info.txt
+          echo "Commit: ${{ github.sha }}" >> docs/build-info.txt
+          echo "Branch: ${{ github.ref_name }}" >> docs/build-info.txt
+          echo "Trigger: ${{ github.event_name }}" >> docs/build-info.txt
+
+          echo "Documentation prepared for serving"
 
       # Build and push Docker image
       - name: Build and push Docker image
@@ -84,8 +125,29 @@ jobs:
           
           # Build and push multi-architecture image
           docker buildx build \
-            --platform linux/amd64 \
+            --platform linux/amd64,linux/arm64 \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
             --push \
             .
+
+  summary:
+    needs: [deploy-mars-blog]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Build and Push Summary
+        run: |
+          echo "## Mars Blog Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Blog Website" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image Tag**: ${{ needs.deploy-mars-blog.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **ECR Repository**: 776241927220.dkr.ecr.us-east-2.amazonaws.com/mars-blog" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ needs.deploy-mars-blog.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Production URLs**:" >> $GITHUB_STEP_SUMMARY
+          echo "  - https://mars.ninja" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "**Note**: Deployment will be handled automatically by Flux in jaseci-cluster." >> $GITHUB_STEP_SUMMARY
+

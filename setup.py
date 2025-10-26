@@ -12,6 +12,7 @@ setup(
         'mkdocs-video>=1.5.0',
         'starlette>=0.27.0',
         'uvicorn>=0.23.0',
+        'watchdog>=3.0.0',
         'jaclang',
     ],
     entry_points={

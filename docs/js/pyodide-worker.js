@@ -70,6 +70,11 @@ class StreamingOutput:
     def flush(self):
         pass
 
+    def isatty(self):
+        # Always return False for web playground to disable colors
+        # This prevents messy ANSI color codes in the output
+        return False
+
 def pyodide_input(prompt=""):
     prompt_str = str(prompt)
 
@@ -119,6 +124,11 @@ python_code = ${codeStr}
 
 try:
     exec(python_code)
+except SystemExit:
+    # The Jac compiler may call SystemExit on fatal errors (e.g., syntax errors).
+    # Detailed error reports are already emitted to stderr by the parser,
+    # so we suppress the exit here to avoid re-raising or duplicating messages.
+    pass
 except Exception as e:
     import traceback
     print(traceback.format_exc(), file=sys.stderr)

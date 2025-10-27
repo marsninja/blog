@@ -44,13 +44,13 @@ Both get you fed, but they work fundamentally differently! In OSP, computation i
 
 ---
 
-## Concept 1: The Spatial Data Model (Nodes & Edges)
+## Concept 1: The Spatial Object Model (Nodes & Edges)
 
-The first thing you need to understand is how data is structured in Object-Spatial Programming. Instead of thinking about isolated objects, you think about **data arranged in space with explicit relationships**.
+The first thing you need to understand is how objects are structured in Object-Spatial Programming. Instead of thinking about isolated objects, you think about **objects arranged in space with explicit relationships**.
 
 > **🔑 Core Insight:** Everything in OSP is built on classes. `node`, `edge`, and `walker` are **not** new primitive types—they're classes that inherit all OOP capabilities (methods, properties, inheritance, polymorphism) **and add** spatial/traversal semantics. This means OSP extends OOP rather than replacing it.
 
-### The Two Pillars of Spatial Data
+### The Two Pillars of the Spatial Object Model
 
 | Type | What It Is | Purpose | Traditional Analogy |
 |------|------------|---------|-------------------|
@@ -418,11 +418,11 @@ with entry {
 
 ## Concept 2: The Mobile Computation Model (Walkers)
 
-Now that you understand how data is structured spatially, the second concept is about **how computation moves through that space**. This is where walkers come in.
+Now that you understand how objects are structured spatially, the second concept is about **how computation moves through that space**. This is where walkers come in.
 
 ### What is a Walker?
 
-A **walker** is a mobile unit of computation that travels through the graph, visiting nodes and performing actions. Think of it as an autonomous agent that navigates your data structure.
+A **walker** is a mobile unit of computation that travels through the graph, visiting nodes and performing actions. Think of it as an autonomous agent that navigates your object graph.
 
 **Important: Walkers are also classes!** They have all the semantics of regular classes (state, methods, inheritance) PLUS the ability to move through the graph and trigger abilities based on what they visit.
 
@@ -944,7 +944,7 @@ with entry {
 
 ## Concept 4: The Traversal & Control Flow (Navigation & Results)
 
-The fourth and final concept is understanding how to control walker navigation and collect results. This is where you orchestrate the computation across your spatial data structure.
+The fourth and final concept is understanding how to control walker navigation and collect results. This is where you orchestrate the computation across your spatial object graph.
 
 ### Visit Strategies
 
@@ -1343,7 +1343,7 @@ Let's see how all four concepts work together in a complete, real-world example:
 <div class="code-block">
 
 ```jac
-# Concept 1: Spatial Data Model
+# Concept 1: Spatial Object Model
 node Task {
     has title: str;
     has status: str = "pending";  # pending, in_progress, complete
@@ -1484,7 +1484,7 @@ graph TB
 
 | Concept | What It Is | Key Elements | What It Enables |
 |---------|-----------|--------------|-----------------|
-| **1. Spatial Data Model** | How data is structured using **classes with spatial semantics** | `node` (class), `edge` (class), `++>`, `[-->]` | First-class relationships, declarative queries, full OOP |
+| **1. Spatial Object Model** | How objects are structured using **classes with spatial semantics** | `node` (class), `edge` (class), `++>`, `[-->]` | First-class relationships, declarative queries, full OOP |
 | **2. Mobile Computation** | How computation moves using **walker classes** | `walker` (class), `spawn`, `visit` | Autonomous traversal, data-centric computation |
 | **3. Event-Driven Interaction** | How things react via **abilities** (special methods) | Abilities, `with entry`, `here`, `self` | Automatic dispatch, bidirectional polymorphism |
 | **4. Traversal & Control** | How you navigate & collect data | `visit` patterns, `report`, `disengage` | Sophisticated navigation, streaming results |
@@ -1538,11 +1538,11 @@ graph LR
 
 **The fundamental difference:**
 
-| Traditional | Object-Spatial |
-|-------------|----------------|
-| Objects are isolated | Nodes are spatially connected |
-| Relationships are data | Relationships are first-class objects |
-| Computation is static | Computation is mobile |
+| Traditional OOP | Object-Spatial Programming |
+|-----------------|---------------------------|
+| Objects are isolated | Objects (nodes) are spatially connected |
+| Relationships are data in lists/dicts | Relationships are first-class objects (edges) |
+| Computation is static | Computation is mobile (walkers) |
 | Method calls are explicit | Abilities dispatch automatically |
 | One-way interaction | Bidirectional interaction |
 
@@ -1552,8 +1552,8 @@ graph LR
 
 You've now learned the complete model of Object-Spatial Programming through four fundamental concepts:
 
-1. **The Spatial Data Model** - Structure your data in space with nodes and edges (classes with spatial semantics)
-2. **The Mobile Computation Model** - Send walkers (classes) to travel through your data
+1. **The Spatial Object Model** - Structure your objects in space with nodes and edges (classes with spatial semantics)
+2. **The Mobile Computation Model** - Send walkers (classes) to travel through your object graph
 3. **The Event-Driven Interaction Model** - Define abilities (special methods) for automatic, bidirectional interaction
 4. **The Traversal & Control Flow** - Navigate with visit, collect with report, control with disengage
 
@@ -1568,7 +1568,7 @@ This means you keep all the programming knowledge you already have and add spati
 The key insight:
 > "Don't bring data to computation. Send computation to where the data lives."
 
-This simple shift in perspective—from static objects to spatial data, from method calls to mobile computation—opens up new possibilities for how we structure programs. Welcome to Object-Spatial Programming.
+This simple shift in perspective—from static objects to spatial objects, from method calls to mobile computation—opens up new possibilities for how we structure programs. Welcome to Object-Spatial Programming.
 
 ---
 

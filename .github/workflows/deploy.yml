@@ -69,7 +69,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # Extract tag name from GitHub ref
+      # Extract tag name from GitHub ref (use semantic versioning on push like jac-lang)
       - name: Get tag name
         id: tag
         run: |
@@ -77,26 +77,21 @@ jobs:
             # Manual dispatch - use timestamp
             TAG="manual-$(date +%Y%m%d-%H%M%S)"
           elif [[ "${{ github.event_name }}" == "release" ]]; then
-            # Release event - clean tag name
+            # Release event - use tag name
             TAG_NAME=${GITHUB_REF#refs/tags/}
-            
-            # Remove 'v' prefix if present: v1.2.3 -> 1.2.3
-            if [[ $TAG_NAME =~ ^v(.+)$ ]]; then
-              TAG="${BASH_REMATCH[1]}"
-            else
-              TAG="$TAG_NAME"
-            fi
+            TAG="$TAG_NAME"
           elif [[ "${{ github.event_name }}" == "schedule" ]]; then
             # For scheduled builds, use date-based versioning
             TAG="nightly-$(date +'%Y%m%d')"
           else
-            # For push builds to main
-            TAG="main-${GITHUB_SHA::7}"
+            # For push builds, create a versioned tag: v1.<commit_count>.<short_sha>
+            COMMIT_COUNT=$(git rev-list --count HEAD)
+            SHORT_SHA=$(git rev-parse --short=8 HEAD)
+            TAG="v1.${COMMIT_COUNT}.${SHORT_SHA}"
           fi
-          
+
           echo "Tag: $TAG"
           echo "Event: ${{ github.event_name }}"
-          echo "Original Tag Name: ${TAG_NAME:-N/A}"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
       # Prepare documentation for serving

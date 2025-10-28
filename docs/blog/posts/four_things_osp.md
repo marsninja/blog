@@ -1,5 +1,6 @@
 ---
 date: 2025-10-26
+draft: true 
 authors:
   - mars
 categories:
@@ -144,12 +145,20 @@ graph TD
 <div class="code-block run-dot">
 
 ```jac
+node Person {
+    has name: str;
+}
+
 with entry {
     alice = Person(name="Alice");
     bob = Person(name="Bob");
 
     # Bidirectional connection (mutual friendship)
+    root ++> alice;
     alice <++> bob;
+
+    print(f"Alice connections: {[alice -->]}");
+    print(f"Bob connections: {[bob -->]}");
 }
 ```
 
@@ -166,7 +175,7 @@ Here's what makes OSP truly revolutionary: **relationships are first-class objec
 
 **Important: Edges are also classes!** Like nodes, edges have all the semantics of regular classes—they can have methods, properties, and behavior—PLUS they represent connections in the graph.
 
-<div class="code-block">
+<div class="code-block run-dot">
 
 ```jac
 node Person {
@@ -204,9 +213,13 @@ with entry {
     alice +>:Friend(since=2015, strength=9):+> bob;
     alice +>:Coworker(department="Engineering"):+> charlie;
 
-    # Access edge methods
-    friendship = [alice ->:Friend:->][0];
-    print(f"Friends for {friendship.years_of_friendship(2024)} years");
+    # Connect to root for visualization
+    root ++> alice;
+
+    # Query different edge types
+    friends = [alice ->:Friend:->];
+    coworkers = [alice ->:Coworker:->];
+    print(f"Alice has {len(friends)} friend(s) and {len(coworkers)} coworker(s)");
 }
 ```
 
@@ -224,7 +237,7 @@ graph LR
 
 Once you've built a graph structure, you can query it using **edge references** with square brackets:
 
-<div class="code-block">
+<div class="code-block run-dot">
 
 ```jac
 node Person {
@@ -240,6 +253,7 @@ with entry {
     bob = Person(name="Bob");
     charlie = Person(name="Charlie");
 
+    root ++> alice;
     alice +>:Friend(since=2015):+> bob;
     alice +>:Friend(since=2020):+> charlie;
 
@@ -305,6 +319,7 @@ with entry {
     alice.connections.append(conn);
 
     friends = find_friends(alice);
+    print(f"Alice's friends: {len(friends)}");
 }
 ```
 
@@ -312,7 +327,7 @@ with entry {
 
 **OSP approach:**
 
-<div class="code-block">
+<div class="code-block run-dot">
 
 ```jac
 # Concise, declarative, type-safe
@@ -326,9 +341,11 @@ with entry {
     alice = Person(name="Alice");
     bob = Person(name="Bob");
 
+    root ++> alice;
     alice +>:Friend:+> bob;
 
     friends = [alice ->:Friend:->];
+    print(f"Alice's friends: {len(friends)}");
 }
 ```
 
@@ -400,6 +417,7 @@ with entry {
     acme = Organization(id="2", created_at="2015-01-01", company_name="Acme Corp", industry="Tech");
 
     # Create typed edge with inheritance
+    root ++> alice;
     alice +>:Employment(start_date="2020-06-01", role="Engineer", salary=120000.0):+> acme;
 
     # Use inherited and specific methods
@@ -407,10 +425,9 @@ with entry {
     alice.send_notification("Welcome!");      # Specific to Person
     print(acme.get_display_name());           # Specific to Organization
 
-    # Access edge
-    job = [alice ->:Employment:->][0];
-    print(job.get_description());             # Specific to Employment
-    print(job.is_active());                   # Inherited from Relationship
+    # Query connections
+    jobs = [alice ->:Employment:->];
+    print(f"Alice has {len(jobs)} job(s)");
 }
 ```
 
@@ -588,7 +605,7 @@ walker DataCollector {
 
 ### Example: Finding a Specific Node
 
-<div class="code-block">
+<div class="code-block run-dot">
 
 ```jac
 node Person {
@@ -875,7 +892,7 @@ Walker: Processing counter at 1
 
 ### Real-World Example: Social Network
 
-<div class="code-block">
+<div class="code-block run-dot">
 
 ```jac
 node User {
@@ -1000,7 +1017,7 @@ visit filtered_targets;
 
 Unlike `return` (which stops execution), **`report`** sends values back to the caller while the walker **continues executing**.
 
-<div class="code-block">
+<div class="code-block run-dot">
 
 ```jac
 node Person {
@@ -1009,13 +1026,15 @@ node Person {
 }
 
 walker AgeCollector {
+    has ages: list = [];
+
     can start with `root entry {
         visit [-->];
     }
 
     can collect with Person entry {
-        report here.age;  # Send age back
-        visit [-->];      # Keep going!
+        self.ages.append(here.age);  # Collect in walker state
+        visit [-->];                 # Keep going!
     }
 }
 
@@ -1026,9 +1045,10 @@ with entry {
 
     root ++> alice ++> bob ++> charlie;
 
-    ages = root spawn AgeCollector();
-    print(f"Collected ages: {ages}");  # [25, 30, 28]
-    print(f"Average age: {sum(ages) / len(ages)}");  # 27.67
+    collector = AgeCollector();
+    root spawn collector;
+    print(f"Collected ages: {collector.ages}");  # [25, 30, 28]
+    print(f"Average age: {sum(collector.ages) / len(collector.ages):.2f}");  # 27.67
 }
 ```
 
@@ -1225,7 +1245,7 @@ walker ConditionalTraversal {
 
 ### Complete Example: Friend Recommendations
 
-<div class="code-block">
+<div class="code-block run-dot">
 
 ```jac
 node User {
@@ -1267,7 +1287,6 @@ walker FriendRecommender {
             if person not in direct_friends and person != here {
                 if person.username not in self.recommendations {
                     self.recommendations.append(person.username);
-                    report person.username;
                 }
             }
         }
@@ -1293,9 +1312,9 @@ with entry {
 
     # Get recommendations for Alice
     recommender = FriendRecommender();
-    recommendations = alice spawn recommender;
+    alice spawn recommender;
 
-    print(f"Recommendations for Alice: {recommendations}");
+    print(f"Recommendations for Alice: {recommender.recommendations}");
 }
 ```
 
@@ -1344,7 +1363,7 @@ graph TB
 
 Let's see how all four concepts work together in a complete, real-world example:
 
-<div class="code-block">
+<div class="code-block run-dot">
 
 ```jac
 # Concept 1: Spatial Object Model
@@ -1387,11 +1406,6 @@ walker TaskAnalyzer {
         # Concept 4: Traversal & Control Flow
         if all_done {
             self.ready_tasks.append(here.title);
-            report {
-                "title": here.title,
-                "priority": here.priority,
-                "status": "ready"
-            };
         } else {
             self.blocked_tasks.append(here.title);
         }
@@ -1441,7 +1455,7 @@ with entry {
 
     # Analyze what's ready
     analyzer = TaskAnalyzer();
-    results = root spawn analyzer;
+    root spawn analyzer;
     print(f"\nReady to work on: {analyzer.ready_tasks}");
     print(f"Blocked tasks: {analyzer.blocked_tasks}");
 
@@ -1450,7 +1464,7 @@ with entry {
 
     # Analyze again
     analyzer2 = TaskAnalyzer();
-    results2 = root spawn analyzer2;
+    root spawn analyzer2;
     print(f"\nAfter completion:");
     print(f"Ready to work on: {analyzer2.ready_tasks}");
     print(f"Blocked tasks: {analyzer2.blocked_tasks}");

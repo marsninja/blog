@@ -99,7 +99,7 @@ At this point, nodes work exactly like regular classes. The spatial magic happen
 
 This is where OSP diverges from traditional OOP. You can **directly connect** nodes using spatial operators:
 
-<div class="code-block">
+<div class="code-block run-dot">
 
 ```jac
 node Person {
@@ -115,6 +115,10 @@ with entry {
     alice ++> bob;      # Alice → Bob
     alice ++> charlie;  # Alice → Charlie
     bob ++> charlie;    # Bob → Charlie
+
+    # Connect Alice to global root
+    root ++> alice;
+    print([alice -->]);
 }
 ```
 
@@ -137,7 +141,7 @@ graph TD
 | `<++` | Backward | `alice <++ bob;` | bob → alice |
 | `<++>` | Both ways | `alice <++> bob;` | alice ↔ bob |
 
-<div class="code-block">
+<div class="code-block run-dot">
 
 ```jac
 with entry {

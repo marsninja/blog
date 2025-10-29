@@ -142,32 +142,6 @@ graph TD
 | `<++` | Backward | `alice <++ bob;` | bob → alice |
 | `<++>` | Both ways | `alice <++> bob;` | alice ↔ bob |
 
-<div class="code-block run-dot">
-
-```jac
-node Person {
-    has name: str;
-}
-
-with entry {
-    alice = Person(name="Alice");
-    bob = Person(name="Bob");
-
-    # Bidirectional connection (mutual friendship)
-    root ++> alice;
-    alice <++> bob;
-
-    print(f"Alice connections: {[alice -->]}");
-    print(f"Bob connections: {[bob -->]}");
-}
-```
-
-</div>
-
-```mermaid
-graph LR
-    Alice <--> Bob
-```
 
 ### Typed Edges: First-Class Relationships
 
@@ -504,48 +478,25 @@ Hello, Bob!
 Hello, Charlie!
 ```
 
-```mermaid
-sequenceDiagram
-    participant Walker as Greeter Walker
-    participant Root
-    participant Alice as Person(Alice)
-    participant Bob as Person(Bob)
-    participant Charlie as Person(Charlie)
-
-    Walker->>Root: Spawns at root
-    Root->>Walker: Executes "start" ability
-    Walker->>Alice: Visits via [-->]
-    Alice->>Walker: Executes "greet" ability
-    Walker->>Bob: Visits via [-->]
-    Bob->>Walker: Executes "greet" ability
-    Walker->>Charlie: Visits via [-->]
-    Charlie->>Walker: Executes "greet" ability
-```
-
 ### Walker Anatomy
-
-<div class="code-block">
 
 ```jac
 walker MyWalker {
-    // Walker state (like object attributes)
+    # Walker state (like object attributes)
     has counter: int = 0;
     has visited_names: list = [];
 
-    // Abilities define what happens at different nodes
+    # Abilities define what happens at different nodes
     can ability_name with NodeType entry {
-        // Your logic here
+        # Your logic here
     }
 }
 ```
-
-</div>
 
 ### The Visit Statement
 
 The `visit` statement is how walkers navigate the graph. It tells the walker **where to go next**.
 
-<div class="code-block">
 
 ```jac
 walker Explorer {
@@ -561,7 +512,6 @@ walker Explorer {
 }
 ```
 
-</div>
 
 ### Visit Pattern Reference
 
@@ -665,16 +615,17 @@ Traditional programming brings data to computation:
 # Traditional approach
 def process_all(data_list):
     for item in data_list:
-        process(item)  # Computation happens here
+        # Computation happens here
+        process(item)  
 ```
 
 OSP sends computation to data:
 
 ```jac
-// OSP approach
+# OSP approach
 walker Processor {
     can process with DataNode entry {
-        // Computation happens AT the data
+        # Computation happens AT the data
         visit [-->];
     }
 }
@@ -1533,26 +1484,6 @@ OSP shines in specific scenarios:
 ✗ Simple list/table processing
 
 ---
-
-## The Paradigm Shift
-
-Traditional programming paradigms:
-
-```mermaid
-graph LR
-    subgraph "Traditional OOP"
-        O1[Object] -->|method call| O2[Object]
-        O2 -->|method call| O3[Object]
-    end
-
-    subgraph "Object-Spatial Programming"
-        N1[Node] --- E1[Edge] --- N2[Node]
-        N2 --- E2[Edge] --- N3[Node]
-        W[Walker] -.->|visits| N1
-        W -.->|visits| N2
-        W -.->|visits| N3
-    end
-```
 
 **The fundamental difference:**
 

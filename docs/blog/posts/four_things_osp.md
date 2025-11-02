@@ -1,6 +1,5 @@
 ---
 date: 2025-10-26
-draft: true 
 authors:
   - mars
 categories:

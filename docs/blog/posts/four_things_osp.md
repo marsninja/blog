@@ -71,7 +71,6 @@ node Person {
     has name: str;
     has age: int;
 
-    # Regular method - just like any class
     def greet -> str {
         return f"Hello, I'm {self.name}!";
     }
@@ -86,9 +85,9 @@ with entry {
     alice = Person(name="Alice", age=25);
     bob = Person(name="Bob", age=30);
 
-    # Use like regular objects
     print(alice.greet());
     alice.celebrate_birthday();
+    print(bob.greet());
 }
 ```
 
@@ -117,9 +116,11 @@ with entry {
     alice ++> charlie;  # Alice → Charlie
     bob ++> charlie;    # Bob → Charlie
 
-    # Connect Alice to global root
     root ++> alice;
-    print([alice -->]);
+    
+    # Query connections
+    connections = [alice -->];
+    print(f"Alice is connected to {len(connections)} person(s)");
 }
 ```
 
@@ -157,10 +158,9 @@ node Person {
 }
 
 edge Friend {
-    has since: int;  # Year they became friends
-    has strength: int = 5;  # Closeness rating 1-10
+    has since: int;
+    has strength: int = 5;
 
-    # Regular method - edges can have behavior!
     def years_of_friendship(current_year: int) -> int {
         return current_year - self.since;
     }
@@ -172,10 +172,6 @@ edge Friend {
 
 edge Coworker {
     has department: str;
-
-    def same_department(other_dept: str) -> bool {
-        return self.department == other_dept;
-    }
 }
 
 with entry {
@@ -183,14 +179,10 @@ with entry {
     bob = Person(name="Bob");
     charlie = Person(name="Charlie");
 
-    # Different types of relationships with their own data
+    root ++> alice;
     alice +>:Friend(since=2015, strength=9):+> bob;
     alice +>:Coworker(department="Engineering"):+> charlie;
 
-    # Connect to root for visualization
-    root ++> alice;
-
-    # Query different edge types
     friends = [alice ->:Friend:->];
     coworkers = [alice ->:Coworker:->];
     print(f"Alice has {len(friends)} friend(s) and {len(coworkers)} coworker(s)");
@@ -231,17 +223,14 @@ with entry {
     alice +>:Friend(since=2015):+> bob;
     alice +>:Friend(since=2020):+> charlie;
 
-    # Query all connections
     all_connections = [alice -->];
-    print(f"Alice has {len(all_connections)} connections");
+    print(f"Total connections: {len(all_connections)}");
 
-    # Query specific edge types
     friends = [alice ->:Friend:->];
-    print(f"Alice has {len(friends)} friends");
+    print(f"Friends: {len(friends)}");
 
-    # Query with filters on edge properties
     old_friends = [alice ->:Friend:since < 2018:->];
-    print(f"Alice has {len(old_friends)} friends since before 2018");
+    print(f"Friends since before 2018: {len(old_friends)}");
 }
 ```
 
@@ -261,10 +250,7 @@ with entry {
 
 **Traditional OOP approach:**
 
-<div class="code-block">
-
 ```jac
-# Verbose, imperative, error-prone
 obj Person {
     has name: str;
     has connections: list = [];
@@ -297,8 +283,6 @@ with entry {
 }
 ```
 
-</div>
-
 **OSP approach:**
 
 <div class="code-block run-dot">
@@ -319,7 +303,7 @@ with entry {
     alice +>:Friend:+> bob;
 
     friends = [alice ->:Friend:->];
-    print(f"Alice's friends: {len(friends)}");
+    print(f"Alice has {len(friends)} friend(s)");
 }
 ```
 
@@ -335,21 +319,12 @@ with entry {
 
 Since nodes and edges are classes, they support all standard OOP features:
 
-<div class="code-block">
-
 ```jac
-# Base node with common behavior
 node Entity {
     has id: str;
     has created_at: str;
-
-    def get_age_days(current_date: str) -> int {
-        # Common method inherited by all entities
-        return 100;  # Simplified
-    }
 }
 
-# Specialized nodes via inheritance
 node Person(Entity) {
     has name: str;
     has email: str;
@@ -368,52 +343,35 @@ node Organization(Entity) {
     }
 }
 
-# Edge with inheritance
-edge Relationship {
-    has start_date: str;
-
-    def is_active -> bool {
-        return True;  # Base implementation
-    }
-}
-
-edge Employment(Relationship) {
+edge Employment {
     has role: str;
-    has salary: float;
-
-    def get_description -> str {
-        return f"{self.role} since {self.start_date}";
-    }
+    has start_date: str;
 }
 
 with entry {
     alice = Person(id="1", created_at="2020-01-01", name="Alice", email="alice@example.com");
     acme = Organization(id="2", created_at="2015-01-01", company_name="Acme Corp", industry="Tech");
 
-    # Create typed edge with inheritance
     root ++> alice;
-    alice +>:Employment(start_date="2020-06-01", role="Engineer", salary=120000.0):+> acme;
+    alice +>:Employment(start_date="2020-06-01", role="Engineer"):+> acme;
 
-    # Use inherited and specific methods
-    print(alice.get_age_days("2024-01-01"));  # Inherited from Entity
-    alice.send_notification("Welcome!");      # Specific to Person
-    print(acme.get_display_name());           # Specific to Organization
+    alice.send_notification("Welcome!");
+    print(acme.get_display_name());
 
-    # Query connections
     jobs = [alice ->:Employment:->];
     print(f"Alice has {len(jobs)} job(s)");
 }
 ```
 
-</div>
-
 **The key insight:** `node`, `edge`, and `walker` are not restrictions—they're **extensions** of regular classes that add spatial semantics while preserving all OOP capabilities.
+
+Now that you understand how objects are structured spatially, let's see how computation moves through that space.
 
 ---
 
 ## Concept 2: The Mobile Computation Model (Walkers)
 
-Now that you understand how objects are structured spatially, the second concept is about **how computation moves through that space**. This is where walkers come in.
+The second concept is about **how computation moves through spatial structures**. Instead of bringing data to static functions, you send mobile units of computation—walkers—through your object graph.
 
 ### What is a Walker?
 
@@ -429,129 +387,103 @@ node Person {
 }
 
 walker Greeter {
-    # Walker state - like class attributes
     has greeting_count: int = 0;
 
-    # Regular methods work too!
-    def get_stats -> str {
-        return f"Greeted {self.greeting_count} people";
-    }
-
-    # Spatial ability - triggers when visiting root
     can start with `root entry {
-        print("Walker starting journey!");
-        visit [-->];  # Visit all connected nodes
+        print("Starting journey!");
+        visit [-->];
     }
 
-    # Spatial ability - triggers when visiting Person nodes
     can greet with Person entry {
         print(f"Hello, {here.name}!");
-        self.greeting_count += 1;  # Update walker state
-        visit [-->];  # Continue to this person's connections
+        self.greeting_count += 1;
+        visit [-->];
     }
 }
 
 with entry {
-    # Build graph
     alice = Person(name="Alice");
     bob = Person(name="Bob");
     charlie = Person(name="Charlie");
 
     root ++> alice ++> bob ++> charlie;
 
-    # Spawn walker at root
     greeter = Greeter();
     root spawn greeter;
-
-    # Access walker state after traversal
-    print(greeter.get_stats());
+    print(f"Total greetings: {greeter.greeting_count}");
 }
 ```
 
 </div>
 
-**Output:**
+The walker travels through the graph, greeting each person it encounters. Output shows the journey:
 ```
-Walker starting journey!
+Starting journey!
 Hello, Alice!
 Hello, Bob!
 Hello, Charlie!
+Total greetings: 3
 ```
 
-### Walker Anatomy
+### Walker Structure
+
+Walkers are classes with state (using `has`) and abilities (using `can`):
 
 ```jac
 walker MyWalker {
-    # Walker state (like object attributes)
     has counter: int = 0;
     has visited_names: list = [];
 
-    # Abilities define what happens at different nodes
     can ability_name with NodeType entry {
-        # Your logic here
+        # Logic executes when visiting NodeType
     }
 }
 ```
 
-### The Visit Statement
+### Navigation with Visit
 
-The `visit` statement is how walkers navigate the graph. It tells the walker **where to go next**.
-
+The `visit` statement controls where walkers go next. It uses the same edge reference syntax you learned for queries:
 
 ```jac
 walker Explorer {
     can explore with Person entry {
         print(f"Visiting {here.name}");
-
-        # Different visit patterns:
-        visit [-->];          # Visit all outgoing connections
-        # visit [<--];        # Visit all incoming connections
-        # visit [<-->];       # Visit all connections (both directions)
-        # visit [->:Friend:->]; # Visit only via Friend edges
+        visit [-->];  # Continue to outgoing connections
     }
 }
 ```
 
 
-### Visit Pattern Reference
-
-| Pattern | Meaning |
-|---------|---------|
-| `visit [-->];` | Visit all nodes connected via outgoing edges |
-| `visit [<--];` | Visit all nodes connected via incoming edges |
-| `visit [<-->];` | Visit all nodes connected in any direction |
-| `visit [->:Type:->];` | Visit only via specific edge type |
-| `visit [->:Type:property > 5:->];` | Visit via filtered edges |
-| `visit node_list;` | Visit specific nodes in a list |
+| Visit Pattern | Navigates To |
+|--------------|--------------|
+| `visit [-->];` | All nodes via outgoing edges |
+| `visit [<--];` | All nodes via incoming edges |
+| `visit [<-->];` | All connected nodes (any direction) |
+| `visit [->:Type:->];` | Nodes via specific edge type |
+| `visit [->:Type:property > 5:->];` | Nodes via filtered edges |
+| `visit node_list;` | Specific nodes in a list |
 
 ### Special References in Walkers
 
-When writing walker code, you have access to special references:
+Within walker abilities, three references are always available:
 
-| Reference | Meaning | Use Case |
-|-----------|---------|----------|
-| `self` | The walker itself | Access walker state |
-| `here` | The current node being visited | Access node properties |
-| `root` | The global root node | Always available anchor point |
-
-<div class="code-block">
+| Reference | What It Is |
+|-----------|------------|
+| `self` | The walker instance (access walker state) |
+| `here` | The current node being visited (access node properties) |
+| `root` | The global root node (always available anchor) |
 
 ```jac
 walker DataCollector {
     has collected_data: list = [];
 
     can collect with Person entry {
-        # self = the walker
-        # here = the current Person node
-
         self.collected_data.append(here.name);
-        print(f"Walker has collected: {self.collected_data}");
+        print(f"Collected: {here.name}");
         visit [-->];
     }
 }
 ```
-
-</div>
 
 ### Example: Finding a Specific Node
 
@@ -574,7 +506,7 @@ walker FindPerson {
         if here.name == self.target {
             print(f"Found {here.name}!");
             self.found = True;
-            disengage;  # Stop immediately (we'll cover this in Concept 4)
+            disengage;
         }
         visit [-->];
     }
@@ -607,78 +539,44 @@ graph TD
     style Charlie fill:#FFB6C6
 ```
 
-### Why Mobile Computation Matters
-
-Traditional programming brings data to computation:
-
-```python
-# Traditional approach
-def process_all(data_list):
-    for item in data_list:
-        # Computation happens here
-        process(item)  
-```
-
-OSP sends computation to data:
-
-```jac
-# OSP approach
-walker Processor {
-    can process with DataNode entry {
-        # Computation happens AT the data
-        visit [-->];
-    }
-}
-```
-
-This shift enables:
-- **Natural graph traversal**: No manual iteration through connections
-- **Automatic dispatching**: Right code runs at right nodes
-- **Distributed potential**: Walkers can move across machine boundaries
-- **Declarative navigation**: Express intent, not mechanics
+This fundamental shift—from bringing data to computation, to sending computation to data—enables natural graph traversal, automatic type-based dispatching, and the potential for distributed execution across machine boundaries.
 
 ---
 
 ## Concept 3: The Event-Driven Interaction Model (Abilities)
 
-The third concept is understanding how walkers and nodes interact. This happens through **abilities**—automatic methods that trigger when certain events occur.
+The third concept defines how walkers and nodes interact through **abilities**—methods that automatically execute when walkers visit nodes.
 
 ### What are Abilities?
 
-**Abilities** are methods that automatically execute based on **type matching** between walkers and nodes. They define the interaction protocol between mobile computation and spatial data.
-
-<div class="code-block">
+**Abilities** are special methods that automatically execute based on type matching between walkers and nodes. They define what happens when a walker visits a specific node type.
 
 ```jac
 walker MyWalker {
-    # Ability: runs when walker visits a Person node
     can meet_person with Person entry {
-        print(f"Walker is meeting {here.name}");
+        print(f"Meeting {here.name}");
     }
 
-    # Ability: runs when walker visits a City node
     can visit_city with City entry {
-        print(f"Walker is visiting {here.name}");
+        print(f"Visiting {here.name}");
     }
 }
 ```
 
-</div>
+### When Abilities Execute
 
-### Ability Triggers
-
-| Trigger | When it Executes |
+| Pattern | When It Triggers |
 |---------|------------------|
-| `with NodeType entry` | When walker **enters** a node of type NodeType |
-| `with NodeType exit` | When walker **leaves** a node of type NodeType |
-| `with WalkerType entry` | When **a walker** of type WalkerType visits (node perspective) |
-| `with \`root entry` | When walker spawns at the root node |
+| `with NodeType entry` | Walker enters a node of this type |
+| `with NodeType exit` | Walker leaves a node of this type |
+| `with WalkerType entry` | A walker of this type visits (node perspective) |
+| `with \`root entry` | Walker spawns at root node |
 
 ### Walker Abilities: The Walker's Perspective
 
-These abilities define what the walker does when visiting different node types:
+Walker abilities define what happens when the walker visits different node types:
 
-<div class="code-block">
+<div class="code-block run-dot">
 
 ```jac
 node Person {
@@ -710,10 +608,14 @@ walker Tourist {
         self.places_visited += 1;
         visit [-->];
     }
+}
 
-    can finish with exit {
-        print(f"Tour complete! Visited {self.places_visited} places");
-    }
+with entry {
+    alice = Person(name="Alice", age=30);
+    paris = City(name="Paris", population=2161000);
+
+    root ++> alice ++> paris;
+    root spawn Tourist();
 }
 ```
 
@@ -721,28 +623,34 @@ walker Tourist {
 
 ### Node Abilities: The Node's Perspective
 
-Nodes can also have abilities that define how they react to visiting walkers:
+Nodes can also define abilities that trigger when specific walker types visit them:
 
-<div class="code-block">
+<div class="code-block run-dot">
 
 ```jac
 node Person {
     has name: str;
     has greeting_count: int = 0;
 
-    # Node's perspective: "When a Greeter visits me"
     can be_greeted with Greeter entry {
         self.greeting_count += 1;
-        print(f"{self.name} has been greeted {self.greeting_count} times");
+        print(f"{self.name} has been greeted {self.greeting_count} time(s)");
     }
 }
 
 walker Greeter {
-    # Walker's perspective: "When I visit a Person"
     can greet with Person entry {
         print(f"Hello, {here.name}!");
         visit [-->];
     }
+}
+
+with entry {
+    alice = Person(name="Alice");
+    bob = Person(name="Bob");
+
+    root ++> alice ++> bob;
+    root spawn Greeter();
 }
 ```
 
@@ -750,22 +658,20 @@ walker Greeter {
 
 ### Bidirectional Polymorphism: The Revolutionary Part
 
-Here's what makes OSP truly unique: **both nodes and walkers can define abilities for the same interaction**. When a walker visits a node, **both abilities execute**!
+Here's what makes OSP unique: **both nodes and walkers can define abilities for the same interaction**. When a walker visits a node, **both abilities execute**!
 
-<div class="code-block">
+<div class="code-block run-dot">
 
 ```jac
 node Person {
     has name: str;
 
-    # Node's perspective
     can greet_visitor with Visitor entry {
-        print(f"{self.name} says: Welcome, visitor!");
+        print(f"{self.name} says: Welcome!");
     }
 }
 
 walker Visitor {
-    # Walker's perspective
     can meet_person with Person entry {
         print(f"Visitor says: Hello, {here.name}!");
         visit [-->];
@@ -775,198 +681,47 @@ walker Visitor {
 with entry {
     alice = Person(name="Alice");
     root ++> alice;
-
     root spawn Visitor();
 }
 ```
 
 </div>
 
-**Output:**
+Both abilities execute automatically, creating a bidirectional interaction contract.
+
+When a walker visits a node, abilities execute in order: **node ability first**, then **walker ability**. This bidirectional execution enables powerful coordination between spatial data and mobile computation.
+
+In this example, both the node and walker define abilities, and both execute automatically when the walker visits:
+
 ```
 Visitor says: Hello, Alice!
-Alice says: Welcome, visitor!
+Alice says: Welcome!
 ```
 
-```mermaid
-sequenceDiagram
-    participant W as Visitor Walker
-    participant P as Person Node (Alice)
-
-    Note over W,P: Walker visits Person
-    W->>P: Triggers Person entry
-    activate W
-    activate P
-    P-->>P: Node ability executes:<br/>"greet_visitor"
-    W-->>W: Walker ability executes:<br/>"meet_person"
-    deactivate W
-    deactivate P
-    Note over W,P: Both abilities run!
-```
-
-This is **bidirectional polymorphism**: the interaction is defined from both perspectives. This is unique to OSP and has no direct equivalent in traditional OOP.
-
-### Ability Execution Order
-
-When a walker visits a node, abilities execute in this order:
-
-1. **Node's ability** for the walker type (if it exists)
-2. **Walker's ability** for the node type (if it exists)
-
-<div class="code-block">
-
-```jac
-node Counter {
-    has count: int = 0;
-
-    can increment with Incrementer entry {
-        self.count += 1;
-        print(f"Node: Count is now {self.count}");
-    }
-}
-
-walker Incrementer {
-    can process with Counter entry {
-        print(f"Walker: Processing counter at {here.count}");
-        visit [-->];
-    }
-}
-```
-
-</div>
-
-**Execution:**
-```
-Node: Count is now 1
-Walker: Processing counter at 1
-```
-
-### Real-World Example: Social Network
-
-<div class="code-block run-dot">
-
-```jac
-node User {
-    has username: str;
-    has posts_viewed: int = 0;
-
-    can track_view with ContentViewer entry {
-        self.posts_viewed += 1;
-        print(f"[{self.username}] Post views: {self.posts_viewed}");
-    }
-}
-
-edge Follow {}
-
-walker ContentViewer {
-    has content_count: int = 0;
-
-    can start with `root entry {
-        visit [-->];
-    }
-
-    can view_content with User entry {
-        self.content_count += 1;
-        print(f"[Viewer] Viewing content from {here.username}");
-        visit [->:Follow:->];  # Only follow edges
-    }
-}
-
-with entry {
-    alice = User(username="alice");
-    bob = User(username="bob");
-    charlie = User(username="charlie");
-
-    root ++> alice;
-    alice +>:Follow:+> bob;
-    bob +>:Follow:+> charlie;
-
-    root spawn ContentViewer();
-}
-```
-
-</div>
-
-**Output:**
-```
-[Viewer] Viewing content from alice
-[alice] Post views: 1
-[Viewer] Viewing content from bob
-[bob] Post views: 1
-[Viewer] Viewing content from charlie
-[charlie] Post views: 1
-```
-
-### Why Event-Driven Interaction Matters
-
-| Traditional OOP | OSP with Abilities |
-|-----------------|-------------------|
-| Explicit method calls | Automatic ability dispatch |
-| One-sided interaction | Bidirectional interaction |
-| Tight coupling | Loose coupling via types |
-| Manual routing | Type-driven routing |
-
-**Abilities enable:**
-- **Automatic dispatch**: Right code runs without explicit routing
-- **Separation of concerns**: Walker logic separate from node logic
-- **Extensibility**: Add new walker types without changing nodes
-- **Bidirectional contracts**: Both sides define interaction
+Abilities enable automatic type-based dispatch, separation of concerns between walkers and nodes, and bidirectional interaction contracts—capabilities that have no direct equivalent in traditional OOP.
 
 ---
 
 ## Concept 4: The Traversal & Control Flow (Navigation & Results)
 
-The fourth and final concept is understanding how to control walker navigation and collect results. This is where you orchestrate the computation across your spatial object graph.
+The fourth concept covers how to control walker navigation, collect results, and orchestrate computation across your spatial graph.
 
 ### Visit Strategies
 
-You've seen basic `visit` statements, but there are sophisticated patterns for controlling traversal:
+Visit statements support sophisticated navigation patterns:
 
-#### 1. Visit All Connections
+| Pattern | Purpose |
+|--------|---------|
+| `visit [-->];` | All outgoing connections |
+| `visit [->:Friend:->];` | Only Friend edge types |
+| `visit [->:Friend:since < 2020:->];` | Filtered by edge property |
+| `visit [here ->:Friend:-> ->:Friend:->];` | Multi-hop (friends of friends) |
 
-```jac
-visit [-->];   # All outgoing
-visit [<--];   # All incoming
-visit [<-->];  # All connections
-```
+You can also query first, then visit specific nodes from a filtered list.
 
-#### 2. Visit Specific Edge Types
+### Collecting Results: Report vs Return
 
-```jac
-visit [->:Friend:->];      # Only Friend edges
-visit [->:Coworker:->];    # Only Coworker edges
-```
-
-#### 3. Visit with Filters
-
-```jac
-# Visit friends from before 2020
-visit [->:Friend:since < 2020:->];
-
-# Visit high-strength friendships
-visit [->:Friend:strength > 7:->];
-```
-
-#### 4. Multi-Hop Traversal
-
-```jac
-# Friends of friends (2 hops)
-potential_friends = [here ->:Friend:-> ->:Friend:->];
-visit potential_friends;
-```
-
-#### 5. Visit Specific Nodes
-
-```jac
-# Build a list and visit it
-targets = [here -->];
-filtered_targets = [t for t in targets if t.age > 25];
-visit filtered_targets;
-```
-
-### The Report Statement: Streaming Results
-
-Unlike `return` (which stops execution), **`report`** sends values back to the caller while the walker **continues executing**.
+Unlike `return` (which stops execution), **`report`** streams values back while the walker continues executing.
 
 <div class="code-block run-dot">
 
@@ -984,8 +739,8 @@ walker AgeCollector {
     }
 
     can collect with Person entry {
-        self.ages.append(here.age);  # Collect in walker state
-        visit [-->];                 # Keep going!
+        self.ages.append(here.age);
+        visit [-->];
     }
 }
 
@@ -1005,38 +760,20 @@ with entry {
 
 </div>
 
-```mermaid
-sequenceDiagram
-    participant Caller
-    participant Walker as AgeCollector
-    participant Alice as Person(Alice, 25)
-    participant Bob as Person(Bob, 30)
-    participant Charlie as Person(Charlie, 28)
-
-    Caller->>Walker: Spawn walker
-    Walker->>Alice: Visit
-    Alice-->>Caller: Report 25
-    Walker->>Bob: Visit
-    Bob-->>Caller: Report 30
-    Walker->>Charlie: Visit
-    Charlie-->>Caller: Report 28
-    Walker->>Caller: Return [25, 30, 28]
-```
-
-### Report vs Return
+Walker state accumulates data as it traverses, allowing you to access collected information after execution completes.
 
 | Feature | `return` | `report` |
 |---------|----------|----------|
-| Stops execution | ✓ Yes | ✗ No |
-| Sends value back | ✓ One value | ✓ Multiple values |
-| Continues walking | ✗ No | ✓ Yes |
+| Stops execution | Yes | No |
+| Sends value back | One value | Multiple values (stream) |
+| Continues walking | No | Yes |
 | Result type | Single value | List of values |
 
-### The Disengage Statement: Early Exit
+### Early Exit: Disengage
 
-Use `disengage` to stop the walker immediately, no matter where it is:
+Use `disengage` to stop walker execution immediately, no matter where it is in the graph. This is useful for search operations where you want to stop once a condition is met.
 
-<div class="code-block">
+<div class="code-block run-dot">
 
 ```jac
 node Person {
@@ -1055,7 +792,7 @@ walker FindPerson {
         if here.name == self.target {
             print(f"Found {here.name}!");
             self.found = True;
-            disengage;  # Stop immediately!
+            disengage;
         }
         visit [-->];
     }
@@ -1065,285 +802,118 @@ with entry {
     alice = Person(name="Alice");
     bob = Person(name="Bob");
     charlie = Person(name="Charlie");
-    dana = Person(name="Dana");
 
-    root ++> alice ++> bob ++> charlie ++> dana;
+    root ++> alice ++> bob ++> charlie;
 
     finder = FindPerson(target="Bob");
     root spawn finder;
-
-    print(f"Found: {finder.found}");
+    print(f"Search result: {finder.found}");
 }
 ```
 
 </div>
 
-**Output:**
-```
-Found Bob!
-Found: True
-```
+You can combine `report` and `disengage` to find and return the first matching node, then stop immediately.
 
-The walker stops at Bob and never visits Charlie or Dana.
-
-### Combining Report and Disengage
-
-<div class="code-block">
-
-```jac
-walker FindFirstAdult {
-    can start with `root entry {
-        visit [-->];
-    }
-
-    can check with Person entry {
-        if here.age >= 18 {
-            report here.name;
-            disengage;  # Found first adult, stop
-        }
-        visit [-->];
-    }
-}
-```
-
-</div>
-
-### Control Flow Patterns
-
-#### Pattern 1: Depth-First Search
-
-<div class="code-block">
-
-```jac
-walker DepthFirst {
-    has visited: set = set();
-
-    can traverse with Person entry {
-        if here.name in self.visited {
-            return;  # Skip already visited
-        }
-
-        self.visited.add(here.name);
-        print(f"Visiting {here.name}");
-
-        visit [-->];  # Go deep first
-    }
-}
-```
-
-</div>
-
-#### Pattern 2: Breadth-First Search
-
-<div class="code-block">
-
-```jac
-walker BreadthFirst {
-    has visited: set = set();
-    has queue: list = [];
-
-    can start with `root entry {
-        self.queue = [root -->];
-    }
-
-    can traverse with Person entry {
-        if here.name not in self.visited {
-            self.visited.add(here.name);
-            print(f"Visiting {here.name}");
-
-            # Add neighbors to queue
-            neighbors = [here -->];
-            for n in neighbors {
-                if n.name not in self.visited {
-                    self.queue.append(n);
-                }
-            }
-        }
-
-        # Visit next in queue
-        if self.queue {
-            visit self.queue.pop(0);
-        }
-    }
-}
-```
-
-</div>
-
-#### Pattern 3: Conditional Traversal
-
-<div class="code-block">
-
-```jac
-walker ConditionalTraversal {
-    can start with `root entry {
-        visit [-->];
-    }
-
-    can traverse with Person entry {
-        print(f"At {here.name}");
-
-        # Only visit friends, not coworkers
-        visit [->:Friend:->];
-
-        # Or: only visit strong friendships
-        visit [->:Friend:strength > 7:->];
-    }
-}
-```
-
-</div>
+Visit patterns naturally create depth-first traversal (visiting all connections recursively). For breadth-first or custom ordering, maintain a queue in walker state. Conditional traversal is achieved by filtering visit statements with edge types or properties.
 
 ### Complete Example: Friend Recommendations
+
+Here's how all traversal concepts work together:
 
 <div class="code-block run-dot">
 
 ```jac
 node User {
     has username: str;
-    has interests: list;
 }
 
 edge Friendship {
     has since: int;
-    has strength: int = 5;
 }
 
 walker FriendRecommender {
     has recommendations: list = [];
-    has visited: set = set();
 
     can start with `root entry {
         visit [-->];
     }
 
     can find_recommendations with User entry {
-        if here.username in self.visited {
-            return;
-        }
-
-        self.visited.add(here.username);
-        print(f"Finding recommendations for {here.username}...");
-
         # Get friends of friends (2 hops)
-        friends_of_friends = [
-            here ->:Friendship:-> ->:Friendship:->
-        ];
-
+        friends_of_friends = [here ->:Friendship:-> ->:Friendship:->];
+        
         # Get direct friends to exclude
         direct_friends = [here ->:Friendship:->];
-
+        
         for person in friends_of_friends {
-            # Don't recommend current friends or self
             if person not in direct_friends and person != here {
                 if person.username not in self.recommendations {
                     self.recommendations.append(person.username);
                 }
             }
         }
-
-        disengage;  # Found recommendations for first user
+        
+        disengage;
     }
 }
 
 with entry {
-    alice = User(username="alice", interests=["coding", "hiking"]);
-    bob = User(username="bob", interests=["coding", "gaming"]);
-    charlie = User(username="charlie", interests=["hiking", "reading"]);
-    dana = User(username="dana", interests=["photography", "travel"]);
+    alice = User(username="alice");
+    bob = User(username="bob");
+    charlie = User(username="charlie");
 
     root ++> alice;
-    root ++> bob;
-    root ++> charlie;
-    root ++> dana;
+    alice +>:Friendship(since=2020):+> bob;
+    bob +>:Friendship(since=2021):+> charlie;
 
-    alice +>:Friendship(since=2020, strength=8):+> bob;
-    bob +>:Friendship(since=2021, strength=6):+> charlie;
-    alice +>:Friendship(since=2019, strength=9):+> dana;
-
-    # Get recommendations for Alice
     recommender = FriendRecommender();
     alice spawn recommender;
-
-    print(f"Recommendations for Alice: {recommender.recommendations}");
+    print(f"Recommendations: {recommender.recommendations}");
 }
 ```
 
 </div>
 
-```mermaid
-graph TB
-    subgraph "Social Network"
-        Alice[User: Alice]
-        Bob[User: Bob]
-        Charlie[User: Charlie]
-        Dana[User: Dana]
-    end
-
-    Alice -->|Friendship<br/>since: 2020<br/>strength: 8| Bob
-    Bob -->|Friendship<br/>since: 2021<br/>strength: 6| Charlie
-    Alice -->|Friendship<br/>since: 2019<br/>strength: 9| Dana
-
-    subgraph "Recommendation Logic"
-        R1[Alice's friends:<br/>Bob, Dana]
-        R2[Bob's friends:<br/>Charlie]
-        R3[Dana's friends:<br/>none]
-        R4[Recommend:<br/>Charlie]
-    end
-
-    Alice -.-> R1
-    R1 -.-> R2
-    R1 -.-> R3
-    R2 -.-> R4
-
-    style R4 fill:#90EE90
-```
-
-### Traversal Control Summary
+This example demonstrates multi-hop queries, filtering, and early exit—all core traversal patterns in OSP.
 
 | Mechanism | Purpose | Stops Walker? | Returns Data? |
 |-----------|---------|---------------|---------------|
 | `visit` | Navigate to nodes | No | No |
-| `report` | Send data back | No | Yes (streams) |
+| `report` | Stream values back | No | Yes (multiple) |
 | `disengage` | Stop immediately | Yes | No |
-| `return` | Exit ability | No (just ability) | No |
+| `return` | Exit current ability | No | No |
 
 ---
 
 ## Putting It All Together: The Four Concepts
 
-Let's see how all four concepts work together in a complete, real-world example:
+Here's how all four concepts work together in a complete example:
 
 <div class="code-block run-dot">
 
 ```jac
-# Concept 1: Spatial Object Model
 node Task {
     has title: str;
-    has status: str = "pending";  # pending, in_progress, complete
-    has priority: int = 1;        # 1=low, 2=medium, 3=high
+    has status: str = "pending";
+    has priority: int = 1;
 }
 
-edge DependsOn {
-    # Task must wait for dependency to complete
-}
+edge DependsOn {}
 
-# Concept 2: Mobile Computation (Walkers)
 walker TaskAnalyzer {
     has ready_tasks: list = [];
     has blocked_tasks: list = [];
 
-    # Concept 3: Event-Driven Interaction (Abilities)
     can start with `root entry {
         visit [-->];
     }
 
     can analyze with Task entry {
         if here.status != "pending" {
-            return;  # Skip non-pending tasks
+            return;
         }
 
-        # Check if all dependencies are complete
         dependencies = [here ->:DependsOn:->];
         all_done = True;
 
@@ -1354,14 +924,13 @@ walker TaskAnalyzer {
             }
         }
 
-        # Concept 4: Traversal & Control Flow
         if all_done {
             self.ready_tasks.append(here.title);
         } else {
             self.blocked_tasks.append(here.title);
         }
 
-        visit [-->];  # Continue to next tasks
+        visit [-->];
     }
 }
 
@@ -1375,7 +944,7 @@ walker MarkComplete {
     can mark with Task entry {
         if here.title == self.task_title {
             here.status = "complete";
-            print(f"✓ Completed: {here.title}");
+            print(f"Completed: {here.title}");
             disengage;
         }
         visit [-->];
@@ -1383,42 +952,36 @@ walker MarkComplete {
 }
 
 with entry {
-    # Build task graph
     task1 = Task(title="Design database", priority=3);
     task2 = Task(title="Implement API", priority=3);
     task3 = Task(title="Create frontend", priority=2);
     task4 = Task(title="Write tests", priority=2);
     task5 = Task(title="Deploy", priority=3);
 
-    # Define dependencies
-    task2 +>:DependsOn:+> task1;  # API needs database
-    task3 +>:DependsOn:+> task2;  # Frontend needs API
-    task4 +>:DependsOn:+> task2;  # Tests need API
-    task5 +>:DependsOn:+> task3;  # Deploy needs frontend
-    task5 +>:DependsOn:+> task4;  # Deploy needs tests
+    task2 +>:DependsOn:+> task1;
+    task3 +>:DependsOn:+> task2;
+    task4 +>:DependsOn:+> task2;
+    task5 +>:DependsOn:+> task3;
+    task5 +>:DependsOn:+> task4;
 
-    # Connect to root
     root ++> task1;
     root ++> task2;
     root ++> task3;
     root ++> task4;
     root ++> task5;
 
-    # Analyze what's ready
     analyzer = TaskAnalyzer();
     root spawn analyzer;
-    print(f"\nReady to work on: {analyzer.ready_tasks}");
-    print(f"Blocked tasks: {analyzer.blocked_tasks}");
+    print(f"Ready: {analyzer.ready_tasks}");
+    print(f"Blocked: {analyzer.blocked_tasks}");
 
-    # Complete first task
     root spawn MarkComplete(task_title="Design database");
 
-    # Analyze again
     analyzer2 = TaskAnalyzer();
     root spawn analyzer2;
     print(f"\nAfter completion:");
-    print(f"Ready to work on: {analyzer2.ready_tasks}");
-    print(f"Blocked tasks: {analyzer2.blocked_tasks}");
+    print(f"Ready: {analyzer2.ready_tasks}");
+    print(f"Blocked: {analyzer2.blocked_tasks}");
 }
 ```
 

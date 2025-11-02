@@ -33,7 +33,7 @@ Data is arranged in space → You send computation to travel through the data
 (Walkers visit nodes in a graph)
 ```
 
-### The Restaurant Analogy
+**The Restaurant Analogy**
 
 Think of it this way:
 
@@ -50,7 +50,7 @@ The first thing you need to understand is how objects are structured in Object-S
 
 > **🔑 Core Insight:** Everything in OSP is built on classes. `node`, `edge`, and `walker` are **not** new primitive types—they're classes that inherit all OOP capabilities (methods, properties, inheritance, polymorphism) **and add** spatial/traversal semantics. This means OSP extends OOP rather than replacing it.
 
-### The Two Pillars of the Spatial Object Model
+**The Two Pillars of the Spatial Object Model**
 
 | Type | What It Is | Purpose | Traditional Analogy |
 |------|------------|---------|-------------------|
@@ -59,7 +59,7 @@ The first thing you need to understand is how objects are structured in Object-S
 
 **Key point:** Nodes and edges are full-featured classes with methods, inheritance, and properties—PLUS spatial connection capabilities.
 
-### Creating Nodes
+**Creating Nodes**
 
 **Important: Nodes are classes!** They have all the semantics of regular classes (methods, inheritance, polymorphism) PLUS the ability to be connected in spatial graphs.
 
@@ -94,7 +94,7 @@ with entry {
 
 At this point, nodes work exactly like regular classes. The spatial magic happens when we connect them...
 
-### Connecting Nodes: The Spatial Operators
+**Connecting Nodes: The Spatial Operators**
 
 This is where OSP diverges from traditional OOP. You can **directly connect** nodes using spatial operators:
 
@@ -134,7 +134,7 @@ graph TD
     Bob --> Charlie
 ```
 
-### Connection Operators Reference
+**Connection Operators Reference**
 
 | Operator | Direction | Example | Result |
 |----------|-----------|---------|--------|
@@ -143,7 +143,7 @@ graph TD
 | `<++>` | Both ways | `alice <++> bob;` | alice ↔ bob |
 
 
-### Typed Edges: First-Class Relationships
+**Typed Edges: First-Class Relationships**
 
 Here's what makes OSP truly revolutionary: **relationships are first-class objects** with their own types and properties!
 
@@ -198,7 +198,7 @@ graph LR
     Alice -->|Coworker<br/>dept: Engineering| Charlie
 ```
 
-### Querying the Graph: Edge References
+**Querying the Graph: Edge References**
 
 Once you've built a graph structure, you can query it using **edge references** with square brackets:
 
@@ -235,7 +235,7 @@ with entry {
 
 </div>
 
-### Edge Reference Patterns
+**Edge Reference Patterns**
 
 | Pattern | Direction | Type Filter | Example |
 |---------|-----------|-------------|---------|
@@ -245,7 +245,7 @@ with entry {
 | `[node ->:Type:->]` | Outgoing | Specific | Specific edge type |
 | `[node ->:Type:property > 5:->]` | Outgoing | Filtered | With property filter |
 
-### Why This Matters: Traditional vs Spatial
+**Why This Matters: Traditional vs Spatial**
 
 **Traditional OOP approach:**
 
@@ -314,7 +314,7 @@ with entry {
 3. **Declarative queries**: Express what you want, not how to get it
 4. **Visual clarity**: The code structure mirrors the data structure
 
-### Nodes and Edges Support Full OOP
+**Nodes and Edges Support Full OOP**
 
 Since nodes and edges are classes, they support all standard OOP features:
 
@@ -372,7 +372,7 @@ Now that you understand how objects are structured spatially, let's see how comp
 
 The second concept is about **how computation moves through spatial structures**. Instead of bringing data to static functions, you send mobile units of computation—walkers—through your object graph.
 
-### What is a Walker?
+**What is a Walker?**
 
 A **walker** is a mobile unit of computation that travels through the graph, visiting nodes and performing actions. Think of it as an autonomous agent that navigates your object graph.
 
@@ -424,7 +424,7 @@ Hello, Charlie!
 Total greetings: 3
 ```
 
-### Walker Structure
+**Walker Structure**
 
 Walkers are classes with state (using `has`) and abilities (using `can`):
 
@@ -439,7 +439,7 @@ walker MyWalker {
 }
 ```
 
-### Navigation with Visit
+**Navigation with Visit**
 
 The `visit` statement controls where walkers go next. It uses the same edge reference syntax you learned for queries:
 
@@ -462,7 +462,7 @@ walker Explorer {
 | `visit [->:Type:property > 5:->];` | Nodes via filtered edges |
 | `visit node_list;` | Specific nodes in a list |
 
-### Special References in Walkers
+**Special References in Walkers**
 
 Within walker abilities, three references are always available:
 
@@ -484,7 +484,7 @@ walker DataCollector {
 }
 ```
 
-### Example: Finding a Specific Node
+**Example: Finding a Specific Node**
 
 <div class="code-block run-dot">
 
@@ -546,7 +546,7 @@ This fundamental shift—from bringing data to computation, to sending computati
 
 The third concept defines how walkers and nodes interact through **abilities**—methods that automatically execute when walkers visit nodes.
 
-### What are Abilities?
+**What are Abilities?**
 
 **Abilities** are special methods that automatically execute based on type matching between walkers and nodes. They define what happens when a walker visits a specific node type.
 
@@ -562,7 +562,7 @@ walker MyWalker {
 }
 ```
 
-### When Abilities Execute
+**When Abilities Execute**
 
 | Pattern | When It Triggers |
 |---------|------------------|
@@ -571,7 +571,7 @@ walker MyWalker {
 | `with WalkerType entry` | A walker of this type visits (node perspective) |
 | `with \`root entry` | Walker spawns at root node |
 
-### Walker Abilities: The Walker's Perspective
+**Walker Abilities: The Walker's Perspective**
 
 Walker abilities define what happens when the walker visits different node types:
 
@@ -620,7 +620,7 @@ with entry {
 
 </div>
 
-### Node Abilities: The Node's Perspective
+**Node Abilities: The Node's Perspective**
 
 Nodes can also define abilities that trigger when specific walker types visit them:
 
@@ -655,7 +655,7 @@ with entry {
 
 </div>
 
-### Bidirectional Polymorphism: The Revolutionary Part
+**Bidirectional Polymorphism: The Revolutionary Part**
 
 Here's what makes OSP unique: **both nodes and walkers can define abilities for the same interaction**. When a walker visits a node, **both abilities execute**!
 
@@ -705,7 +705,7 @@ Abilities enable automatic type-based dispatch, separation of concerns between w
 
 The fourth concept covers how to control walker navigation, collect results, and orchestrate computation across your spatial graph.
 
-### Visit Strategies
+**Visit Strategies**
 
 Visit statements support sophisticated navigation patterns:
 
@@ -718,7 +718,7 @@ Visit statements support sophisticated navigation patterns:
 
 You can also query first, then visit specific nodes from a filtered list.
 
-### Collecting Results: Report vs Return
+**Collecting Results: Report vs Return**
 
 Unlike `return` (which stops execution), **`report`** streams values back while the walker continues executing.
 
@@ -768,7 +768,7 @@ Walker state accumulates data as it traverses, allowing you to access collected 
 | Continues walking | No | Yes |
 | Result type | Single value | List of values |
 
-### Early Exit: Disengage
+**Early Exit: Disengage**
 
 Use `disengage` to stop walker execution immediately, no matter where it is in the graph. This is useful for search operations where you want to stop once a condition is met.
 
@@ -816,7 +816,7 @@ You can combine `report` and `disengage` to find and return the first matching n
 
 Visit patterns naturally create depth-first traversal (visiting all connections recursively). For breadth-first or custom ordering, maintain a queue in walker state. Conditional traversal is achieved by filtering visit statements with edge types or properties.
 
-### Complete Example: Friend Recommendations
+**Complete Example: Friend Recommendations**
 
 Here's how all traversal concepts work together:
 
@@ -1028,7 +1028,7 @@ graph TB
 
 OSP shines in specific scenarios:
 
-### Perfect For:
+**Perfect For:**
 
 ✓ **Social networks** - Users, friendships, followers
 ✓ **Knowledge graphs** - Concepts and their relationships
@@ -1038,7 +1038,7 @@ OSP shines in specific scenarios:
 ✓ **Organization charts** - People and reporting structures
 ✓ **Dependency management** - Packages, versions, requirements
 
-### Not Ideal For:
+**Not Ideal For:**
 
 ✗ Simple CRUD applications
 ✗ Data with no significant relationships

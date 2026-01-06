@@ -22,12 +22,14 @@ This article will teach you the complete model of Object-Spatial Programming thr
 Before we dive into the four concepts, let's establish what makes Object-Spatial Programming fundamentally different from traditional Object-Oriented Programming (OOP).
 
 **Traditional OOP:**
+
 ```
 Data sits still → You bring computation to the data
 (Call methods on objects)
 ```
 
 **Object-Spatial Programming:**
+
 ```
 Data is arranged in space → You send computation to travel through the data
 (Walkers visit nodes in a graph)
@@ -48,7 +50,7 @@ Both get you fed, but they work fundamentally differently! In OSP, computation i
 
 The first thing you need to understand is how objects are structured in Object-Spatial Programming. Instead of thinking about isolated objects, you think about **objects arranged in space with explicit relationships**.
 
-> **🔑 Core Insight:** Everything in OSP is built on classes. `node`, `edge`, and `walker` are **not** new primitive types—they're classes that inherit all OOP capabilities (methods, properties, inheritance, polymorphism) **and add** spatial/traversal semantics. This means OSP extends OOP rather than replacing it.
+> **Core Insight:** Everything in OSP is built on classes. `node`, `edge`, and `walker` are **not** new primitive types—they're classes that inherit all OOP capabilities (methods, properties, inheritance, polymorphism) **and add** spatial/traversal semantics. This means OSP extends OOP rather than replacing it.
 
 **The Two Pillars of the Spatial Object Model**
 
@@ -116,7 +118,7 @@ with entry {
     bob ++> charlie;    # Bob → Charlie
 
     root ++> alice;
-    
+
     # Query connections
     connections = [alice -->];
     print(f"Alice is connected to {len(connections)} person(s)");
@@ -141,7 +143,6 @@ graph TD
 | `++>` | Forward | `alice ++> bob;` | alice → bob |
 | `<++` | Backward | `alice <++ bob;` | bob → alice |
 | `<++>` | Both ways | `alice <++> bob;` | alice ↔ bob |
-
 
 **Typed Edges: First-Class Relationships**
 
@@ -309,6 +310,7 @@ with entry {
 </div>
 
 **Key advantages:**
+
 1. **Natural representation**: Relationships are explicit in the structure
 2. **Type safety**: Edges have their own types and properties
 3. **Declarative queries**: Express what you want, not how to get it
@@ -416,6 +418,7 @@ with entry {
 </div>
 
 The walker travels through the graph, greeting each person it encounters. Output shows the journey:
+
 ```
 Starting journey!
 Hello, Alice!
@@ -451,7 +454,6 @@ walker Explorer {
     }
 }
 ```
-
 
 | Visit Pattern | Navigates To |
 |--------------|--------------|
@@ -841,10 +843,10 @@ walker FriendRecommender {
     can find_recommendations with User entry {
         # Get friends of friends (2 hops)
         friends_of_friends = [here ->:Friendship:-> ->:Friendship:->];
-        
+
         # Get direct friends to exclude
         direct_friends = [here ->:Friendship:->];
-        
+
         for person in friends_of_friends {
             if person not in direct_friends and person != here {
                 if person.username not in self.recommendations {
@@ -852,7 +854,7 @@ walker FriendRecommender {
                 }
             }
         }
-        
+
         disengage;
     }
 }
@@ -1030,20 +1032,20 @@ OSP shines in specific scenarios:
 
 **Perfect For:**
 
-✓ **Social networks** - Users, friendships, followers
-✓ **Knowledge graphs** - Concepts and their relationships
-✓ **Recommendation systems** - Users, products, ratings
-✓ **Workflow systems** - Tasks with dependencies
-✓ **Transportation networks** - Cities, routes, connections
-✓ **Organization charts** - People and reporting structures
-✓ **Dependency management** - Packages, versions, requirements
+ **Social networks** - Users, friendships, followers
+ **Knowledge graphs** - Concepts and their relationships
+ **Recommendation systems** - Users, products, ratings
+ **Workflow systems** - Tasks with dependencies
+ **Transportation networks** - Cities, routes, connections
+ **Organization charts** - People and reporting structures
+ **Dependency management** - Packages, versions, requirements
 
 **Not Ideal For:**
 
-✗ Simple CRUD applications
-✗ Data with no significant relationships
-✗ Performance-critical tight loops
-✗ Simple list/table processing
+ Simple CRUD applications
+ Data with no significant relationships
+ Performance-critical tight loops
+ Simple list/table processing
 
 ---
 
@@ -1094,4 +1096,4 @@ Want to dive deeper? Explore these resources:
 
 **Ready to build something?** Start with a simple social network, then work your way up to more complex graph-based applications. The four concepts you've learned here are all you need to get started.
 
-Happy spatial programming! 🚀
+Happy spatial programming!

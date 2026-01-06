@@ -19,11 +19,13 @@ A clean MkDocs blog setup with Jac syntax highlighting and interactive, runnable
 ## Installation
 
 1. **Clone this repository** (if you haven't already):
+
    ```bash
    cd ~/blog
    ```
 
 2. **Install all dependencies and the Jac syntax highlighter**:
+
    ```bash
    pip install -e .
    ```
@@ -73,11 +75,13 @@ mkdocs gh-deploy
 ### Creating a New Post
 
 1. Create a new markdown file in `docs/posts/`:
+
    ```bash
    touch docs/posts/my-new-post.md
    ```
 
 2. Add the post to the navigation in `mkdocs.yml`:
+
    ```yaml
    nav:
      - Posts:
@@ -180,6 +184,7 @@ The runnable code blocks use:
 4. **SharedArrayBuffer**: For synchronous input handling (requires special CORS headers)
 
 When you click "Run":
+
 1. The code is loaded into Monaco Editor
 2. A web worker initializes Pyodide and loads the Jac compiler
 3. The code is executed in the browser
@@ -238,6 +243,7 @@ Add your custom styles to `docs/extra.css`.
 ## Dependencies
 
 Core dependencies:
+
 - `mkdocs-material`: Material theme for MkDocs
 - `pymdown-extensions`: Markdown extensions for code highlighting
 - `pygments`: Syntax highlighting library
@@ -245,12 +251,12 @@ Core dependencies:
 - `uvicorn`: ASGI server
 
 Optional dependencies:
+
 - `mkdocs-video`: Video embedding support
 
 ## License
 
 [Add your license here]
-
 
 ## Contributing
 

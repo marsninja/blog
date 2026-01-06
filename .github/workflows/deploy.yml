@@ -117,7 +117,7 @@ jobs:
           IMAGE_TAG: ${{ steps.tag.outputs.tag }}
         run: |
           echo "Building and pushing to: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          
+
           # Build and push multi-architecture image
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
@@ -125,4 +125,3 @@ jobs:
             -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
             --push \
             .
-

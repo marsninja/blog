@@ -102,9 +102,8 @@ plugins:
         - Jac Programming
         - Tutorials
         - Fixing the Broken
-        - AI & ML
-        - Web Development
         - Object-Spatial Programming
+        - Jaseci Internals
       authors: true
       authors_file: "{blog}/.authors.yml"
       pagination: true

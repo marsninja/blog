@@ -12,7 +12,6 @@ slug: python-getting-jacd
 
 When explaining complex software architectures, there's this tendency to start with the grand vision and work down to implementation details. But honestly, for developers who actually need to use a tool, the opposite approach makes way more sense. This post if for the Python developer exploring Jac, a programming language and runtime that extends Python rather than trying to replace it. We'll start with what you can actually install and use today, then work our way up to why it exists.
 
-
 <!-- more -->
 
 The thinking behind Jac is pretty straightforward: we're still using programming abstractions from the 1980s and 1990s, but our applications look nothing like what we built back then. Pretty much every app today has cloud components, needs to scale, and increasingly includes AI stuff. Jac tries to provide new abstractions for these realities while staying compatible with Python.
@@ -39,7 +38,7 @@ graph TB
     subgraph "Execution Environment"
         VM[CPython VM]
     end
-    
+
     I --> C
     I --> R
     C -->|Generates Bytecode| VM
@@ -64,20 +63,20 @@ The relationship between these components creates a flexible yet powerful system
 ```mermaid
 graph LR
     subgraph "Development Layer"
-        J[Jac Modules] 
+        J[Jac Modules]
         P[Python Modules]
     end
-    
+
     subgraph "Compilation Layer"
         JC[Jac Compiler]
         RT[Runtime Library]
     end
-    
+
     subgraph "Execution Layer"
         PB[Python Bytecode]
         CPY[CPython VM]
     end
-    
+
     J --> JC
     JC --> PB
     PB --> CPY
@@ -124,7 +123,7 @@ graph LR
 
 Don't want any new syntax at all? Fair enough. You can access Jac's features entirely through decorators, base classes, and function calls. You lose some compile-time optimizations, but if your organization has strong Python standards or adding a new file extension requires three meetings and a committee approval, this works great.
 
-Here is an example of pure python with jac as a library. Soon you'll see the pure Jac version. 
+Here is an example of pure python with jac as a library. Soon you'll see the pure Jac version.
 <div class="code-block" data-lang="python">
 ```python
 from __future__ import annotations
@@ -143,10 +142,8 @@ from jaclang.lib import (
     visit,
 )
 
-
 class Person(Node):
     name: str
-
 
 class FindPerson(Walker):
     target: str
@@ -163,12 +160,12 @@ class FindPerson(Walker):
             return
         visit(self, refs(OPath(here).edge_out().visit()))
 
-
 alice = Person(name="Alice")
 bob = Person(name="Bob")
 charlie = Person(name="Charlie")
 connect(left=connect(left=connect(left=root(), right=alice), right=bob), right=charlie)
 spawn(root(), FindPerson(target="Bob"))
+
 ```
 </div>
 
@@ -290,6 +287,7 @@ with entry {
 
     root spawn FindPerson(target="Bob");
 }
+
 ```
 </div>
 
@@ -307,7 +305,7 @@ sequenceDiagram
     participant JacCompiler
     participant RuntimeLib
     participant PythonVM
-    
+
     Developer->>JacCompiler: Write Jac code
     JacCompiler->>JacCompiler: Parse and analyze
     JacCompiler->>RuntimeLib: Generate calls to runtime
@@ -333,17 +331,17 @@ graph TB
     subgraph "Core"
         JL[jaclang - Core Compiler & Runtime]
     end
-    
+
     subgraph "Official Plugins"
         PLLM[byLLM - LLM Integration]
         PC[jac-cloud - Cloud Scaling]
         PS[jac-streamlit - Streamlit Support]
     end
-    
+
     subgraph "Development Tools"
         VSC[VS Code Extension]
     end
-    
+
     JL --> PLLM
     JL --> PC
     JL --> PS
@@ -386,18 +384,18 @@ graph TD
         B[Jac Modules]
         C[Mixed Codebases]
     end
-    
+
     subgraph "Abstraction Levels"
         D[Language Constructs]
         E[Decorators & Functions]
     end
-    
+
     subgraph "What You Get"
         G[Scale-Native Abstraction]
         H[AI Integration]
         I[Complexity Hiding]
     end
-    
+
     A --> E
     C --> D
     B --> D

@@ -39,6 +39,7 @@ class Person:
                 self.email == other.email)
 
 print(Person(name="Alice", age=30, email="alice@example.com"))
+
 ```
 </div>
 
@@ -63,6 +64,7 @@ class Person:
 
 print(Person(name="Alice", age=30, email="alice@example.com"))
 ```
+
 </div>
 
 From 15+ lines to 4 lines. The field definitions become the single source of truth. Dataclasses can be thought of as *"mutable namedtuples with defaults"* (PEP 557).
@@ -89,8 +91,8 @@ class Product:
         self.quantity += amount
         self.total_value = self.price * self.quantity
 
-
 print(Product(name="Widget", price=9.99, quantity=10).total_value)
+
 ```
 </div>
 

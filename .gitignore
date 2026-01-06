@@ -41,5 +41,8 @@ ENV/
 .DS_Store
 Thumbs.db
 
+# Jac
+.jac/
+
 # Generated files
 docs/playground/jaclang.zip

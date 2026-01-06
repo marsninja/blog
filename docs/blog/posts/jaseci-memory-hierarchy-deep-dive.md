@@ -223,12 +223,14 @@ def populate(self) -> None:
 When a node is loaded from disk, its connected edges initially exist as **stubs**—minimal objects containing only a UUID. The moment you access any property on a stub, `__getattr__` fires, triggering a load from the memory hierarchy. This means:
 
 ```jac
-# Loading alice doesn't load her entire social network
-alice = root.get_person("Alice");  # Only alice loaded
+# Traversing from root loads only direct connections
+for person in [root -->](`?Person)(?name == "Alice") {
+    # At this point, only alice is loaded—not her connections
 
-# Accessing edges triggers lazy loading of just what's needed
-for friend in alice --> Person {   # Now friend edges load
-    print(friend.name);            # Each friend loads on access
+    # Now accessing alice's edges triggers lazy loading
+    for friend in [person -->](`?Person) {
+        print(friend.name);  # Each friend loads on first access
+    }
 }
 ```
 
@@ -441,11 +443,11 @@ obj PersistentMemory(Memory) {
 
 ## Concrete Implementations: From Dict to MongoDB
 
-Now let's see how these interfaces come to life.
+Now let's see how these interfaces come to life. We'll focus on the object definitions—what state each tier maintains and what operations it supports. The implementation details follow straightforward patterns documented in the [implementation files](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac/jaclang/runtimelib/impl/memory.impl.jac).
 
 **L1: VolatileMemory — In-Process Dictionary**
 
-The simplest possible implementation—a Python dictionary:
+The simplest possible storage—a Python dictionary with O(1) lookups:
 
 **Source:** [`jac/jaclang/runtimelib/memory.jac` (lines 122-158)](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac/jaclang/runtimelib/memory.jac#L122-L158)
 
@@ -456,41 +458,38 @@ This is the L1 tier in a tiered memory hierarchy. All data is lost when
 the process exits. Used as the fast cache layer in TieredMemory.
 """
 obj VolatileMemory(Memory) {
-    has __mem__: dict[UUID, Anchor] = {},
-        __gc__: set[Anchor] = {};
+    has __mem__: dict[UUID, Anchor] = {},   # The actual storage
+        __gc__: set[Anchor] = {};           # Tracks deletions for sync
 
-    # ... method signatures ...
+    # Memory interface implementation
+    def is_available -> bool;
+    def get(id: UUID) -> (Anchor | None);
+    def put(anchor: Anchor) -> None;
+    def delete(id: UUID) -> None;
+    def close -> None;
+    def has(id: UUID) -> bool;
+    def query(filter: (Callable[[Anchor], bool] | None) = None)
+        -> Generator[Anchor, None, None];
+    def get_roots -> Generator[Root, None, None];
+    def find(ids: (UUID | Iterable[UUID]),
+             filter: (Callable[[Anchor], Anchor] | None) = None)
+        -> Generator[Anchor, None, None];
+    def find_one(ids: (UUID | Iterable[UUID]),
+                 filter: (Callable[[Anchor], Anchor] | None) = None)
+        -> (Anchor | None);
+    def commit(anchor: (Anchor | None) = None) -> None;
 }
 ```
 
-**Source:** [`jac/jaclang/runtimelib/impl/memory.impl.jac` (lines 31-46)](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac/jaclang/runtimelib/impl/memory.impl.jac#L31-L46)
+**Key design decisions:**
 
-```jac
-"""Retrieve an anchor by ID."""
-impl VolatileMemory.get(id: UUID) -> (Anchor | None) {
-    return self.__mem__.get(id);
-}
-
-"""Store an anchor."""
-impl VolatileMemory.put(anchor: Anchor) -> None {
-    self.__mem__[anchor.id] = anchor;
-}
-
-"""Remove an anchor by ID and track for garbage collection."""
-impl VolatileMemory.delete(id: UUID) -> None {
-    if (anchor := self.__mem__.pop(id, None)) {
-        self.__gc__.add(anchor);
-    }
-}
-```
-
-**Why track deletions in `__gc__`?** When a node is deleted from L1, we need to propagate that deletion to L2 and L3. The garbage collection set ensures we don't forget what was deleted when `sync` is called.
-
-**Performance**: Dictionary lookups are O(1). This is as fast as it gets without dropping to C.
+- **`__mem__`**: Direct dict access gives nanosecond lookups—as fast as Python allows
+- **`__gc__`**: Tracks deleted anchors so higher tiers can propagate deletions during sync
+- **No persistence**: Data lives only for the process lifetime; that's the point of L1
 
 **L2: LocalCacheMemory — Single-Process Cache**
 
-For single-process deployments, this extends VolatileMemory with cache semantics:
+Extends `VolatileMemory` with cache-specific semantics through multiple inheritance:
 
 **Source:** [`jac/jaclang/runtimelib/memory.jac` (lines 160-170)](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac/jaclang/runtimelib/memory.jac#L160-L170)
 
@@ -501,35 +500,15 @@ Extends VolatileMemory with cache-specific methods (exists, put_if_exists, inval
 This is the default L2 tier. jac-scale overrides with Redis-based distributed cache.
 """
 obj LocalCacheMemory(VolatileMemory, CacheMemory) {
-    # CacheMemory interface
+    # Inherits __mem__ and __gc__ from VolatileMemory
+    # Adds CacheMemory interface
     def exists(id: UUID) -> bool;
     def put_if_exists(anchor: Anchor) -> bool;
     def invalidate(id: UUID) -> None;
 }
 ```
 
-**Source:** [`jac/jaclang/runtimelib/impl/memory.impl.jac` (lines 133-150)](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac/jaclang/runtimelib/impl/memory.impl.jac#L133-L150)
-
-```jac
-"""Check if a key exists in the cache without loading the value."""
-impl LocalCacheMemory.exists(id: UUID) -> bool {
-    return id in self.__mem__;
-}
-
-"""Store an anchor only if it already exists in the cache."""
-impl LocalCacheMemory.put_if_exists(anchor: Anchor) -> bool {
-    if anchor.id in self.__mem__ {
-        self.__mem__[anchor.id] = anchor;
-        return True;
-    }
-    return False;
-}
-
-"""Invalidate a cache entry by ID."""
-impl LocalCacheMemory.invalidate(id: UUID) -> None {
-    self.__mem__.pop(id, None);
-}
-```
+**Why multiple inheritance?** `LocalCacheMemory` *is* a `VolatileMemory` (same storage mechanism) but also satisfies the `CacheMemory` contract. This lets `TieredMemory` treat it uniformly with `RedisBackend`—both implement `CacheMemory`.
 
 This is the default L2 for local development. No Redis to install, no configuration needed.
 
@@ -546,115 +525,44 @@ Uses Python's shelve module for file-based durable storage.
 Maintains an in-memory cache for fast reads with write-through to shelf.
 """
 obj ShelfMemory(PersistentMemory) {
-    has path: str,
-        __mem__: dict[UUID, Anchor] = {},
-        __gc__: set[Anchor] = {},
-        __shelf__: (shelve.Shelf | None) = None;
+    has path: str,                              # File path for shelf
+        __mem__: dict[UUID, Anchor] = {},       # Read-through cache
+        __gc__: set[Anchor] = {},               # Deletion tracking
+        __shelf__: (shelve.Shelf | None) = None; # Underlying file storage
 
     def init(path: str) -> None;
-    # ... method signatures ...
+
+    # Memory interface
+    def is_available -> bool;
+    def get(id: UUID) -> (Anchor | None);
+    def put(anchor: Anchor) -> None;
+    def delete(id: UUID) -> None;
+    def close -> None;
+    def has(id: UUID) -> bool;
+    def query(filter: (Callable[[Anchor], bool] | None) = None)
+        -> Generator[Anchor, None, None];
+    def get_roots -> Generator[Root, None, None];
+    def find(ids: (UUID | Iterable[UUID]),
+             filter: (Callable[[Anchor], Anchor] | None) = None)
+        -> Generator[Anchor, None, None];
+    def find_one(ids: (UUID | Iterable[UUID]),
+                 filter: (Callable[[Anchor], Anchor] | None) = None)
+        -> (Anchor | None);
+    def commit(anchor: (Anchor | None) = None) -> None;
+
+    # PersistentMemory interface
+    def sync -> None;
+    def bulk_put(anchors: Iterable[Anchor]) -> None;
 }
 ```
 
-**Source:** [`jac/jaclang/runtimelib/impl/memory.impl.jac` (lines 155-161)](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac/jaclang/runtimelib/impl/memory.impl.jac#L155-L161)
+**Key design decisions:**
 
-```jac
-"""Initialize ShelfMemory with a file path."""
-impl ShelfMemory.init(path: str) -> None {
-    self.path = path;
-    self.__mem__ = {};
-    self.__gc__ = set();
-    self.__shelf__ = shelve.open(path);
-}
-```
+- **Read-through caching**: `get()` checks `__mem__` first, then `__shelf__`, promoting hits to memory
+- **Write-through**: `put()` writes to both memory and shelf
+- **Access control on sync**: The `sync()` method checks `WRITE` and `CONNECT` permissions before persisting changes—unauthorized modifications never reach disk
 
-The read-through pattern optimizes repeated access:
-
-**Source:** [`jac/jaclang/runtimelib/impl/memory.impl.jac` (lines 168-183)](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac/jaclang/runtimelib/impl/memory.impl.jac#L168-L183)
-
-```jac
-"""Get an anchor by ID. Check memory first, then shelf."""
-impl ShelfMemory.get(id: UUID) -> (Anchor | None) {
-    # Check in-memory cache first
-    if (anchor := self.__mem__.get(id)) {
-        return anchor;
-    }
-    # Check shelf
-    if isinstance(self.__shelf__, shelve.Shelf) {
-        if (anchor := self.__shelf__.get(str(id))) {
-            # Promote to memory cache
-            self.__mem__[id] = anchor;
-            return anchor;
-        }
-    }
-    return None;
-}
-```
-
-The `sync` operation is where access control gets enforced:
-
-**Source:** [`jac/jaclang/runtimelib/impl/memory.impl.jac` (lines 271-328)](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac/jaclang/runtimelib/impl/memory.impl.jac#L271-L328)
-
-```jac
-"""Sync memory to shelf with access control checks."""
-impl ShelfMemory.sync -> None {
-    import from jaclang { JacRuntimeInterface as Jac }
-    if not isinstance(self.__shelf__, shelve.Shelf) {
-        return;
-    }
-    # Handle garbage collected anchors (deletions)
-    for anchor in self.__gc__ {
-        self.__shelf__.pop(str(anchor.id), None);
-    }
-    self.__gc__.clear();
-    # Sync memory to shelf with access control
-    for (id, anchor) in list(self.__mem__.items()) {
-        if not anchor.persistent {
-            continue;
-        }
-
-        key = str(id);
-        stored = self.__shelf__.get(key);
-
-        if stored {
-            # Handle edge updates (CONNECT access)
-            if (
-                isinstance(stored, NodeAnchor)
-                and isinstance(anchor, NodeAnchor)
-                and stored.edges != anchor.edges
-                and Jac.check_connect_access(anchor)
-            ) {
-                if not anchor.edges and not isinstance(anchor.archetype, Root) {
-                    self.__shelf__.pop(key, None);
-                    continue;
-                }
-                stored.edges = anchor.edges;
-            }
-            # Handle access/archetype updates (WRITE access)
-            if Jac.check_write_access(anchor) {
-                if hash(dumps(stored.access)) != hash(dumps(anchor.access)) {
-                    stored.access = anchor.access;
-                }
-                if hash(dumps(stored.archetype)) != hash(dumps(anchor.archetype)) {
-                    stored.archetype = anchor.archetype;
-                }
-            }
-            self.__shelf__[key] = stored;
-        } elif not (
-            isinstance(anchor, NodeAnchor)
-            and not isinstance(anchor.archetype, Root)
-            and not anchor.edges
-        ) {
-            # New anchor - check write access before persisting
-            if Jac.check_write_access(anchor) {
-                self.__shelf__[key] = anchor;
-            }
-        }
-    }
-}
-```
-
-**Key insight**: Access control is enforced at the persistence boundary. You can modify an object in memory all you want, but unauthorized changes won't reach disk.
+See the [implementation](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac/jaclang/runtimelib/impl/memory.impl.jac#L155-L328) for the full read-through/write-through logic and access control enforcement.
 
 > **Summary:** L1 (`VolatileMemory`) is a Python dict. L2 (`LocalCacheMemory`) adds cache semantics for single-process use. L3 (`ShelfMemory`) uses Python's `shelve` for file-based persistence with read-through caching and access control enforcement on sync.
 
@@ -682,6 +590,7 @@ obj TieredMemory(VolatileMemory) {
         l3: (PersistentMemory | None) = None;
 
     def init(session: (str | None) = None, use_cache: bool = False) -> None;
+
     # Override only methods that need tiering logic
     def get(id: UUID) -> (Anchor | None);
     def put(anchor: Anchor) -> None;
@@ -691,6 +600,8 @@ obj TieredMemory(VolatileMemory) {
     def commit(anchor: (Anchor | None) = None) -> None;
 }
 ```
+
+**Key architectural insight:** `TieredMemory` *is* the L1 tier (via inheritance) while *having* L2 and L3 tiers (via composition). This means L1 operations are direct method calls on `self`, while L2/L3 operations delegate to pluggable backends.
 
 **Read Path: Hunt Through the Hierarchy**
 
@@ -708,33 +619,7 @@ flowchart LR
     L3 -->|No| RET4[Return None]
 ```
 
-**Source:** [`jac/jaclang/runtimelib/impl/memory.impl.jac` (lines 380-400)](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac/jaclang/runtimelib/impl/memory.impl.jac#L380-L400)
-
-```jac
-"""Get anchor with read-through: L1 -> L2 -> L3 with promotion."""
-impl TieredMemory.get(id: UUID) -> (Anchor | None) {
-    # L1 hit (self.__mem__ inherited from VolatileMemory)
-    if (anchor := self.__mem__.get(id)) {
-        return anchor;
-    }
-    # L2 hit with promotion to L1
-    if self.l2 and (anchor := self.l2.get(id)) {
-        self.__mem__[anchor.id] = anchor;
-        return anchor;
-    }
-    # L3 fallback with promotion to L1 (and L2 if enabled)
-    if self.l3 and (anchor := self.l3.get(id)) {
-        self.__mem__[anchor.id] = anchor;
-        if self.l2 {
-            self.l2.put(anchor);
-        }
-        return anchor;
-    }
-    return None;
-}
-```
-
-**Why promote on read?** If you're reading something, you'll likely read it again soon (temporal locality). Promotion ensures subsequent reads hit faster tiers.
+The `get()` implementation follows the classic cache lookup pattern: check each tier in order, promoting hits to faster tiers. **Why promote on read?** Temporal locality—if you're reading something, you'll likely read it again soon.
 
 **Write Path: Write-Through with Access Control**
 
@@ -751,52 +636,13 @@ flowchart LR
     L3W --> DONE
 ```
 
-**Source:** [`jac/jaclang/runtimelib/impl/memory.impl.jac` (lines 402-417)](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac/jaclang/runtimelib/impl/memory.impl.jac#L402-L417)
-
-```jac
-"""Put anchor with write-through: L1 always, L2/L3 with access control."""
-impl TieredMemory.put(anchor: Anchor) -> None {
-    import from jaclang { JacRuntimeInterface as Jac }
-    # Always write to L1 (self.__mem__ inherited from VolatileMemory)
-    self.__mem__[anchor.id] = anchor;
-    # Write-through to L2 (cache) if enabled
-    if self.l2 {
-        self.l2.put(anchor);
-    }
-    # Write-through to L3 with access control check
-    if self.l3 and anchor.persistent {
-        if Jac.check_write_access(anchor) {
-            self.l3.put(anchor);
-        }
-    }
-}
-```
-
-**Why write-through instead of write-back?** Write-back (lazy persistence) is faster but risks data loss on crashes. Write-through is safer and simpler—crucial for a language runtime where users don't expect to manage transactions.
+The `put()` implementation always writes to L1, optionally to L2, and to L3 only if `anchor.persistent` is true *and* access control passes. **Why write-through instead of write-back?** Write-back risks data loss on crashes. Write-through is safer—crucial for a language runtime where users don't manage transactions.
 
 **Delete Path: Cascade Down**
 
-**Source:** [`jac/jaclang/runtimelib/impl/memory.impl.jac` (lines 419-433)](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac/jaclang/runtimelib/impl/memory.impl.jac#L419-L433)
+Deletions propagate immediately to all tiers: remove from L1 (tracking in `__gc__`), invalidate L2 cache, delete from L3 persistence. There's no "mark for deletion" complexity—when it's gone, it's gone everywhere.
 
-```jac
-"""Delete anchor from all tiers."""
-impl TieredMemory.delete(id: UUID) -> None {
-    # Delete from L1 (track for GC)
-    if (anchor := self.__mem__.pop(id, None)) {
-        self.__gc__.add(anchor);
-    }
-    # Invalidate L2 cache
-    if self.l2 {
-        self.l2.invalidate(id);
-    }
-    # Delete from L3 persistence
-    if self.l3 {
-        self.l3.delete(id);
-    }
-}
-```
-
-Deletions propagate immediately to all tiers. There's no "mark for deletion" complexity—when it's gone, it's gone everywhere.
+See the [implementation](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac/jaclang/runtimelib/impl/memory.impl.jac#L380-L433) for the complete read/write/delete logic.
 
 > **Summary:** `TieredMemory` orchestrates the three tiers. Reads use read-through (L1→L2→L3 with promotion). Writes use write-through (always L1, then L2/L3 with access control). Deletes cascade to all tiers immediately.
 
@@ -816,17 +662,17 @@ a unified interface to all storage tiers. TieredMemory handles read-through
 caching and write-through persistence with access control internally.
 """
 class ExecutionContext {
-    has mem: Memory,
-        reports: list[Any],
-        custom: Any,
-        system_root: NodeAnchor,
-        entry_node: NodeAnchor,
-        root_state: NodeAnchor;
+    has mem: Memory,                    # The tiered memory system
+        reports: list[Any],             # Walker report accumulator
+        custom: Any,                    # User-defined context data
+        system_root: NodeAnchor,        # The global root (SUPER_ROOT_UUID)
+        entry_node: NodeAnchor,         # Current entry point for walkers
+        root_state: NodeAnchor;         # Current user's root context
 
     def init(
         self: ExecutionContext,
-        session: (str | None) = None,
-        <>root: (str | None) = None
+        session: (str | None) = None,   # Persistence path (optional)
+        <>root: (str | None) = None     # Override root UUID (optional)
     ) -> None;
 
     def _get_anchor(self: ExecutionContext, anchor_id: str) -> NodeAnchor;
@@ -836,49 +682,38 @@ class ExecutionContext {
 }
 ```
 
-**Initialization: Finding or Creating Root**
+**How the Pieces Connect**
 
-**Source:** [`jac/jaclang/runtimelib/impl/context.impl.jac` (lines 11-31)](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac/jaclang/runtimelib/impl/context.impl.jac#L11-L31)
+The `ExecutionContext` is the glue between your Jac code and the memory hierarchy:
 
-```jac
-"""Initialize ExecutionContext."""
-impl ExecutionContext.init(
-    self: ExecutionContext, session: (str | None) = None, <>root: (str | None) = None
-) -> None {
-    # Create TieredMemory with optional persistence
-    self.mem = TieredMemory(session=session);
-    self.reports = [];
-    self.custom = MISSING;
-    # Try to load system root from storage (TieredMemory handles L1/L3 lookup)
-    system_root = cast((NodeAnchor | None), self.mem.get(UUID(Con.SUPER_ROOT_UUID)));
-    # Create system root if not found
-    if not isinstance(system_root, NodeAnchor) {
-        system_root = cast(NodeAnchor, Root().__jac__);
-        system_root.id = UUID(Con.SUPER_ROOT_UUID);
-        self.mem.put(system_root);
-    }
-    self.system_root = system_root;
-    self.entry_node = self.root_state=(
-        self._get_anchor(<>root) if <>root else self.system_root
-    );
-}
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#888'}}}%%
+flowchart LR
+    subgraph Context["ExecutionContext"]
+        MEM["mem: TieredMemory"]
+        SR["system_root"]
+        EN["entry_node"]
+    end
+
+    subgraph Init["On Initialization"]
+        I1["1. Create TieredMemory"]
+        I2["2. Look up SUPER_ROOT_UUID"]
+        I3["3. Create root if not found"]
+        I4["4. Set entry point"]
+    end
+
+    I1 --> I2 --> I3 --> I4
+    MEM -.-> I1
+    SR -.-> I3
 ```
 
-**The SUPER_ROOT_UUID**: This is a well-known UUID constant. Every Jaseci graph has exactly one super root, and its UUID is deterministic. This enables persistence—on restart, we look up this UUID and recover the entire graph through lazy loading.
+**The SUPER_ROOT_UUID**: This is a well-known UUID constant. Every Jaseci graph has exactly one super root, and its UUID is deterministic. On initialization, `ExecutionContext` looks up this UUID via `mem.get()`. If found, the entire graph is recoverable through lazy loading. If not found, a new root is created.
 
 **Lifecycle: Clean Shutdown**
 
-**Source:** [`jac/jaclang/runtimelib/impl/context.impl.jac` (lines 51-55)](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac/jaclang/runtimelib/impl/context.impl.jac#L51-L55)
+When the context closes, `mem.close()` cascades through the tiers: L3 syncs to disk, L2 connections close, L1 clears. Your data is safe.
 
-```jac
-"""Close current ExecutionContext."""
-impl ExecutionContext.close(self: ExecutionContext) -> None {
-    # TieredMemory handles syncing to persistence and closing all tiers
-    self.mem.close();
-}
-```
-
-When the context closes, `TieredMemory.close()` cascades: L3 syncs to disk, L2 connections close, L1 clears. Your data is safe.
+See the [implementation](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac/jaclang/runtimelib/impl/context.impl.jac#L11-L55) for initialization and shutdown logic.
 
 > **Summary:** `ExecutionContext` initializes `TieredMemory` and locates or creates the system root (a well-known UUID). On close, it ensures all tiers sync and release resources.
 
@@ -918,6 +753,8 @@ flowchart TB
 
 **ScaleTieredMemory: Smart Backend Selection**
 
+`ScaleTieredMemory` extends `TieredMemory` with production-ready backends:
+
 **Source:** [`jac-scale/jac_scale/memory_hierarchy.jac` (lines 113-129)](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac-scale/jac_scale/memory_hierarchy.jac#L113-L129)
 
 ```jac
@@ -931,57 +768,18 @@ Swaps the default implementations:
 Falls back to jaclang's ShelfMemory for L3 when MongoDB is unavailable.
 """
 obj ScaleTieredMemory(TieredMemory) {
-    has _cache_available: bool = False,
-        _persistence_type: str = 'none',
-        session_path: (str | None) = None;
+    has _cache_available: bool = False,     # Redis connectivity status
+        _persistence_type: str = 'none',    # 'mongodb' or 'shelf'
+        session_path: (str | None) = None;  # Fallback path for ShelfMemory
 
     def init(session: (str | None) = None, use_cache: bool = True) -> None;
     def close -> None;
 }
 ```
 
-**Source:** [`jac-scale/jac_scale/impl/memory_hierarchy.main.impl.jac` (lines 7-42)](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac-scale/jac_scale/impl/memory_hierarchy.main.impl.jac#L7-L42)
+**Graceful degradation**: On initialization, `ScaleTieredMemory` probes Redis and MongoDB. If Redis is unavailable, L2 is simply `None`—no distributed cache, but the system works. If MongoDB is unavailable, it falls back to `ShelfMemory`. Your application doesn't crash; it adapts.
 
-```jac
-"""Initialize ScaleTieredMemory with distributed backends."""
-impl ScaleTieredMemory.init(
-    session: (str | None) = None, use_cache: bool = True
-) -> None {
-    # Store session path for reference
-    self.session_path = session;
-    # L1: Initialize volatile memory (inherited from VolatileMemory via TieredMemory)
-    self.__mem__ = {};
-    self.__gc__ = set();
-    # L2: Try to initialize Redis cache (replaces LocalCacheMemory)
-    redis_backend = RedisBackend();
-    self._cache_available = redis_backend.is_available();
-    if self._cache_available and use_cache {
-        self.l2 = redis_backend;
-        logger.info("Redis cache backend initialized");
-    } else {
-        self.l2 = None;
-        logger.debug("Redis not available, running without distributed cache");
-    }
-    # L3: Try MongoDB first (replaces ShelfMemory), fall back to ShelfMemory
-    mongo_backend = MongoBackend();
-    if mongo_backend.is_available() {
-        self.l3 = mongo_backend;
-        self._persistence_type = 'mongodb';
-        logger.info("MongoDB persistence backend initialized");
-    } else {
-        # Fall back to jaclang's ShelfMemory
-        if session {
-            self.l3 = ShelfMemory(path=session);
-        } else {
-            self.l3 = ShelfMemory(path=_db_config['shelf_db_path']);
-        }
-        self._persistence_type = 'shelf';
-        logger.info("MongoDB not available, using ShelfMemory for persistence");
-    }
-}
-```
-
-**Graceful degradation**: Your application doesn't crash if Redis is down—it just runs without distributed caching. MongoDB unavailable? It falls back to file storage. This is crucial for development (no infrastructure needed) and resilience in production.
+See the [initialization logic](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac-scale/jac_scale/impl/memory_hierarchy.main.impl.jac#L7-L42) for the backend selection algorithm.
 
 **RedisBackend: Distributed L2 Cache**
 
@@ -998,50 +796,27 @@ obj RedisBackend(CacheMemory) {
 
     def postinit -> None;
     def is_available -> bool;
-    # CacheMemory interface (Memory methods + cache-specific)
+
+    # Memory interface
     def get(id: UUID) -> (Anchor | None);
     def put(anchor: Anchor) -> None;
-    # ... additional methods ...
+    def delete(id: UUID) -> None;
+    def has(id: UUID) -> bool;
+    def close -> None;
+    def query(filter: (Callable[[Anchor], bool] | None) = None)
+        -> Generator[Anchor, None, None];
+    def commit(anchor: (Anchor | None) = None) -> None;
+
+    # CacheMemory interface
+    def exists(id: UUID) -> bool;
+    def put_if_exists(anchor: Anchor) -> bool;
+    def invalidate(id: UUID) -> None;
 }
 ```
 
-**Source:** [`jac-scale/jac_scale/impl/memory_hierarchy.redis.impl.jac` (lines 46-76)](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac-scale/jac_scale/impl/memory_hierarchy.redis.impl.jac#L46-L76)
+**Serialization**: Anchors are pickled before storage. This handles complex nested structures natively. For cross-language scenarios, you'd swap pickle for JSON or MessagePack—the interface doesn't care.
 
-```jac
-"""Get anchor by UUID from Redis cache."""
-impl RedisBackend.get(id: UUID) -> (Anchor | None) {
-    if self.redis_client is None {
-        return None;
-    }
-    key = storage_key(to_uuid(id));
-    try {
-        raw = self.redis_client.get(key);
-        if not raw {
-            return None;
-        }
-        return loads(raw);
-    } except Exception as e {
-        logger.debug(f"Redis get failed: {e}");
-        return None;
-    }
-}
-
-"""Store anchor in Redis cache."""
-impl RedisBackend.put(anchor: Anchor) -> None {
-    if self.redis_client is None {
-        return;
-    }
-    try {
-        data = dumps(anchor);
-        key = storage_key(anchor.id);
-        self.redis_client.set(key, data);
-    } except Exception as e {
-        logger.debug(f"Redis put failed: {e}");
-    }
-}
-```
-
-**Why pickle?** Anchors are Python objects with complex nested structures. Pickle handles this natively. For cross-language scenarios, you'd use a different serialization format—the interface doesn't care.
+See the [Redis implementation](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac-scale/jac_scale/impl/memory_hierarchy.redis.impl.jac) for get/put/invalidate logic.
 
 **MongoBackend: Scalable L3 Persistence**
 
@@ -1060,73 +835,27 @@ obj MongoBackend(PersistentMemory) {
 
     def postinit -> None;
     def is_available -> bool;
-    # PersistentMemory interface (Memory methods + persistence-specific)
+
+    # Memory interface
     def get(id: UUID) -> (Anchor | None);
     def put(anchor: Anchor) -> None;
-    # ... additional methods ...
-}
-```
+    def delete(id: UUID) -> None;
+    def has(id: UUID) -> bool;
+    def close -> None;
+    def query(filter: (Callable[[Anchor], bool] | None) = None)
+        -> Generator[Anchor, None, None];
+    def get_roots -> Generator[Root, None, None];
+    def commit(anchor: (Anchor | None) = None) -> None;
 
-**Source:** [`jac-scale/jac_scale/impl/memory_hierarchy.mongo.impl.jac` (lines 69-85)](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac-scale/jac_scale/impl/memory_hierarchy.mongo.impl.jac#L69-L85)
-
-```jac
-"""Store anchor in MongoDB."""
-impl MongoBackend.put(anchor: Anchor) -> None {
-    if self.client is None or not anchor.persistent {
-        return;
-    }
-    _id = to_uuid(anchor.id);
-    try {
-        data_blob = dumps(anchor);
-        self.collection.update_one(
-            {'_id': str(_id)},
-            {'$set': {'data': data_blob, 'type': type(anchor).__name__}},
-            upsert=True
-        );
-    } except Exception as e {
-        logger.debug(f"MongoDB put failed: {e}");
-    }
-}
-```
-
-**Source:** [`jac-scale/jac_scale/impl/memory_hierarchy.mongo.impl.jac` (lines 194-225)](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac-scale/jac_scale/impl/memory_hierarchy.mongo.impl.jac#L194-L225)
-
-```jac
-"""Bulk store multiple anchors."""
-impl MongoBackend.bulk_put(anchors: Iterable[Anchor]) -> None {
-    if self.client is None {
-        return;
-    }
-    ops: list = [];
-    for anchor in anchors {
-        if not anchor.persistent {
-            continue;
-        }
-        _id = to_uuid(anchor.id);
-        try {
-            data_blob = dumps(anchor);
-            ops.append(
-                UpdateOne(
-                    {'_id': str(_id)},
-                    {'$set': {'data': data_blob, 'type': type(anchor).__name__}},
-                    upsert=True
-                )
-            );
-        } except Exception as e {
-            logger.debug(f"MongoDB bulk_put serialization failed: {e}");
-        }
-    }
-    if ops {
-        try {
-            self.collection.bulk_write(ops);
-        } except Exception as e {
-            logger.debug(f"MongoDB bulk_write failed: {e}");
-        }
-    }
+    # PersistentMemory interface
+    def sync -> None;
+    def bulk_put(anchors: Iterable[Anchor]) -> None;
 }
 ```
 
 **Why store serialized blobs?** MongoDB is schema-flexible, but Jac archetypes are user-defined and arbitrary. Storing pickled blobs means any archetype works without schema management. The `type` field enables future optimizations (like indexing by node type).
+
+See the [MongoDB implementation](https://github.com/jaseci-labs/jaseci/blob/36c202fcf2c1699b77f5b1e4a249e88a76a3b7b7/jac-scale/jac_scale/impl/memory_hierarchy.mongo.impl.jac) for storage and query logic.
 
 > **Summary:** `jac-scale` provides `ScaleTieredMemory` with distributed backends: `RedisBackend` for L2 cache, `MongoBackend` for L3 persistence. The system gracefully degrades—missing Redis means no distributed cache; missing MongoDB falls back to `ShelfMemory`.
 

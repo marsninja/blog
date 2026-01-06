@@ -69,7 +69,7 @@ Before diving into details, let's establish the overall architecture:
 %%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#888'}}}%%
 flowchart TB
     subgraph UserCode["What You Write"]
-        JP["Jac Program\nnodes, edges, walkers"]
+        JP["Jac Program<br>nodes, edges, walkers"]
     end
 
     subgraph Runtime["What Jaseci Manages"]
@@ -78,9 +78,9 @@ flowchart TB
     end
 
     subgraph Storage["Where Data Lives"]
-        L1["◆ L1: VolatileMemory\nIn-process dict\n~nanoseconds"]
-        L2["◇ L2: CacheMemory\nLocal or Redis\n~microseconds"]
-        L3["○ L3: PersistentMemory\nShelf or MongoDB\n~milliseconds"]
+        L1["◆ L1: VolatileMemory<br>In-process dict<br>~nanoseconds"]
+        L2["◇ L2: CacheMemory<br>Local or Redis<br>~microseconds"]
+        L3["○ L3: PersistentMemory<br>Shelf or MongoDB<br>~milliseconds"]
     end
 
     JP --> EC
@@ -108,7 +108,7 @@ Now, let's understand the foundational abstraction that makes this transparent t
 
 The key insight enabling transparent persistence is **separating what users see from what gets stored**. This is the Anchor-Archetype pattern.
 
-### The Two Faces of Every Object
+**The Two Faces of Every Object**
 
 When you write `Person(name="Alice")` in Jac, two objects are actually created:
 
@@ -116,11 +116,11 @@ When you write `Person(name="Alice")` in Jac, two objects are actually created:
 %%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#888'}}}%%
 flowchart LR
     subgraph UserFacing["What You Interact With"]
-        ARCH["Person Archetype\nname = Alice\nage = 30"]
+        ARCH["Person Archetype<br>name = Alice<br>age = 30"]
     end
 
     subgraph Persisted["What Gets Persisted"]
-        ANCHOR["NodeAnchor\nid: UUID\nroot: UUID\naccess: Permission\npersistent: true\nedges: list"]
+        ANCHOR["NodeAnchor<br>id: UUID<br>root: UUID<br>access: Permission<br>persistent: true<br>edges: list"]
     end
 
     ARCH -- "__jac__" --> ANCHOR
@@ -137,7 +137,7 @@ This separation is powerful because:
 2. **Persistence is orthogonal** - The same archetype can be persistent or transient based on context
 3. **Graph structure lives in anchors** - Node archetypes don't know about edges; NodeAnchors do
 
-### The Anchor Family
+**The Anchor Family**
 
 Different Jac constructs need different metadata, so there's an anchor type for each:
 
@@ -181,7 +181,7 @@ classDiagram
 - **EdgeAnchor**: Knows its source and target nodes
 - **WalkerAnchor**: Maintains traversal state (path history, next nodes to visit)
 
-### The Magic of Lazy Loading
+**The Magic of Lazy Loading**
 
 Here's where it gets clever. When you deserialize a node from storage, you don't want to load the entire graph into memory. Jaseci solves this with **lazy loading through Python's `__getattr__`**:
 
@@ -209,7 +209,7 @@ for friend in alice --> Person {   # Now friend edges load
 }
 ```
 
-### Serialization Without Infinite Loops
+**Serialization Without Infinite Loops**
 
 Graphs have cycles. If Alice knows Bob and Bob knows Alice, naive serialization would loop forever. The **stub pattern** solves this:
 
@@ -231,7 +231,7 @@ When serializing, connected anchors become stubs. When deserializing, those stub
 
 With the Anchor-Archetype pattern handling *what* gets stored, we now need to address *where* and *how*. Jaseci defines a clean interface hierarchy that allows swapping storage backends without changing application code.
 
-### Why Interfaces Matter
+**Why Interfaces Matter**
 
 Consider these deployment scenarios:
 
@@ -285,7 +285,7 @@ classDiagram
     PersistentMemory <|.. MongoBackend
 ```
 
-### The Base Contract: Memory
+**The Base Contract: Memory**
 
 Every storage tier implements this interface:
 
@@ -312,7 +312,7 @@ obj Memory {
 
 This interface is deliberately minimal—just enough to store and retrieve anchors by UUID. Simplicity here enables flexibility in implementations.
 
-### Cache-Specific Operations: CacheMemory
+**Cache-Specific Operations: CacheMemory**
 
 Caches have unique requirements beyond basic storage:
 
@@ -331,7 +331,7 @@ obj CacheMemory(Memory) {
 
 **Why `put_if_exists`?** In a cache-aside pattern, you only want to update cache entries that are already there. If a node isn't cached, there's no point caching it during a write—it wasn't hot enough to be cached during reads, so it's probably cold.
 
-### Persistence-Specific Operations: PersistentMemory
+**Persistence-Specific Operations: PersistentMemory**
 
 Durable storage needs guarantees that caches don't:
 
@@ -353,7 +353,7 @@ obj PersistentMemory(Memory) {
 
 Now let's see how these interfaces come to life.
 
-### L1: VolatileMemory — The Speed Demon
+**L1: VolatileMemory — The Speed Demon**
 
 The simplest possible implementation—a Python dictionary:
 
@@ -382,7 +382,7 @@ impl VolatileMemory.delete(id: UUID) -> None {
 
 **Performance**: Dictionary lookups are O(1). This is as fast as it gets without dropping to C.
 
-### L2: LocalCacheMemory — Development's Best Friend
+**L2: LocalCacheMemory — Development's Best Friend**
 
 For single-process deployments, this extends VolatileMemory with cache semantics:
 
@@ -406,7 +406,7 @@ impl LocalCacheMemory.invalidate(id: UUID) -> None {
 
 This is the default L2 for local development. No Redis to install, no configuration needed.
 
-### L3: ShelfMemory — File-Based Persistence
+**L3: ShelfMemory — File-Based Persistence**
 
 Python's `shelve` module provides a dict-like interface backed by files:
 
@@ -485,7 +485,7 @@ obj TieredMemory(VolatileMemory) {
 }
 ```
 
-### Read Path: Hunt Through the Hierarchy
+**Read Path: Hunt Through the Hierarchy**
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#888'}}}%%
@@ -529,7 +529,7 @@ impl TieredMemory.get(id: UUID) -> (Anchor | None) {
 
 **Why promote on read?** If you're reading something, you'll likely read it again soon (temporal locality). Promotion ensures subsequent reads hit faster tiers.
 
-### Write Path: Write-Through with Access Control
+**Write Path: Write-Through with Access Control**
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#888'}}}%%
@@ -567,7 +567,7 @@ impl TieredMemory.put(anchor: Anchor) -> None {
 
 **Why write-through instead of write-back?** Write-back (lazy persistence) is faster but risks data loss on crashes. Write-through is safer and simpler—crucial for a language runtime where users don't expect to manage transactions.
 
-### Delete Path: Cascade Down
+**Delete Path: Cascade Down**
 
 ```jac
 impl TieredMemory.delete(id: UUID) -> None {
@@ -605,7 +605,7 @@ class ExecutionContext {
 }
 ```
 
-### Initialization: Finding or Creating Root
+**Initialization: Finding or Creating Root**
 
 ```jac
 impl ExecutionContext.init(
@@ -633,7 +633,7 @@ impl ExecutionContext.init(
 
 **The SUPER_ROOT_UUID**: This is a well-known UUID constant. Every Jaseci graph has exactly one super root, and its UUID is deterministic. This enables persistence—on restart, we look up this UUID and recover the entire graph through lazy loading.
 
-### Lifecycle: Clean Shutdown
+**Lifecycle: Clean Shutdown**
 
 ```jac
 impl ExecutionContext.close -> None {
@@ -660,14 +660,14 @@ The `jac-scale` package extends the base hierarchy with distributed backends.
 flowchart TB
     subgraph ScaleMemory["jac-scale: ScaleTieredMemory"]
         direction TB
-        L1S["◆ L1: VolatileMemory\nIn-process dict"]
-        L2S["◇ L2: RedisBackend\nDistributed cache"]
-        L3S["○ L3: MongoBackend\nDocument database"]
+        L1S["◆ L1: VolatileMemory<br>In-process dict"]
+        L2S["◇ L2: RedisBackend<br>Distributed cache"]
+        L3S["○ L3: MongoBackend<br>Document database"]
     end
 
     subgraph Fallbacks["Graceful Fallbacks"]
-        R{"Redis\navailable?"}
-        M{"MongoDB\navailable?"}
+        R{"Redis<br>available?"}
+        M{"MongoDB<br>available?"}
         SF[ShelfMemory]
     end
 
@@ -677,7 +677,7 @@ flowchart TB
     M -->|No| SF
 ```
 
-### ScaleTieredMemory: Smart Backend Selection
+**ScaleTieredMemory: Smart Backend Selection**
 
 ```jac
 obj ScaleTieredMemory(TieredMemory) {
@@ -716,7 +716,7 @@ impl ScaleTieredMemory.init(session: str | None = None, use_cache: bool = True) 
 
 **Graceful degradation**: Your application doesn't crash if Redis is down—it just runs without distributed caching. MongoDB unavailable? It falls back to file storage. This is crucial for development (no infrastructure needed) and resilience in production.
 
-### RedisBackend: Distributed L2 Cache
+**RedisBackend: Distributed L2 Cache**
 
 ```jac
 obj RedisBackend(CacheMemory) {
@@ -754,7 +754,7 @@ impl RedisBackend.put(anchor: Anchor) -> None {
 
 **Why pickle?** Anchors are Python objects with complex nested structures. Pickle handles this natively. For cross-language scenarios, you'd use a different serialization format—the interface doesn't care.
 
-### MongoBackend: Scalable L3 Persistence
+**MongoBackend: Scalable L3 Persistence**
 
 ```jac
 obj MongoBackend(PersistentMemory) {
@@ -808,16 +808,16 @@ Jaseci doesn't just persist data—it enforces who can modify what.
 %%{init: {'theme': 'base', 'themeVariables': { 'lineColor': '#888'}}}%%
 flowchart TD
     subgraph Levels["Access Levels"]
-        NO["NO_ACCESS: -1\nCannot even read"]
-        RD["READ: 0\nCan read, nothing else"]
-        CN["CONNECT: 1\nCan add/remove edges"]
-        WR["WRITE: 2\nCan modify archetype"]
+        NO["NO_ACCESS: -1<br>Cannot even read"]
+        RD["READ: 0<br>Can read, nothing else"]
+        CN["CONNECT: 1<br>Can add/remove edges"]
+        WR["WRITE: 2<br>Can modify archetype"]
     end
 
     subgraph Enforcement["Enforcement Points"]
-        E1["TieredMemory.put\nChecks WRITE"]
-        E2["ShelfMemory.sync\nChecks WRITE + CONNECT"]
-        E3["Edge operations\nChecks CONNECT"]
+        E1["TieredMemory.put<br>Checks WRITE"]
+        E2["ShelfMemory.sync<br>Checks WRITE + CONNECT"]
+        E3["Edge operations<br>Checks CONNECT"]
     end
 
     WR --> E1
@@ -895,7 +895,7 @@ Process A's write flows through all tiers. Process B's read hits L2 (Redis) beca
 
 ## Configuration and Deployment
 
-### Local Development (Zero Config)
+**Local Development (Zero Config)**
 
 ```bash
 jac run myapp.jac
@@ -903,7 +903,7 @@ jac run myapp.jac
 
 Uses `TieredMemory` with `ShelfMemory`—data persists to a local file. No infrastructure needed.
 
-### Production with jac-scale
+**Production with jac-scale**
 
 Set environment variables or `jac.toml`:
 
@@ -918,7 +918,7 @@ shelf_db_path = "./fallback.shelf"  # Fallback if MongoDB unavailable
 jac run myapp.jac  # Automatically uses ScaleTieredMemory
 ```
 
-### Kubernetes Deployment
+**Kubernetes Deployment**
 
 jac-scale includes utilities for cloud-native deployment:
 
@@ -938,23 +938,23 @@ with entry {
 
 ## Key Design Principles
 
-### 1. Transparency Over Control
+**1. Transparency Over Control**
 
 Users write business logic; the runtime handles persistence. No `@Entity` annotations, no `session.add()`, no explicit transactions.
 
-### 2. Layered Abstraction
+**2. Layered Abstraction**
 
 Clean interfaces (`Memory` → `CacheMemory`/`PersistentMemory`) let you swap implementations. Development uses files; production uses databases; tests use mocks.
 
-### 3. Graceful Degradation
+**3. Graceful Degradation**
 
 Missing Redis? No cache, but it works. Missing MongoDB? Falls back to files. The system adapts to its environment.
 
-### 4. Security at Boundaries
+**4. Security at Boundaries**
 
 Access control is enforced where data leaves the process. In-memory operations are fast and unchecked; persistence is the security gate.
 
-### 5. Graph-Native Design
+**5. Graph-Native Design**
 
 The anchor-archetype pattern and lazy loading are designed for graphs. Cycles, references, and partial loading "just work."
 

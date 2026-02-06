@@ -466,17 +466,10 @@ cd writer_app
 jac start writer_app.jac --port 8002
 ```
 
-### The Reviewer UI
+### Open in Browser
 
-Open http://localhost:8001 — the Reviewer runs standalone too. You can paste text and get a review directly.
-
-![Reviewer Agent UI — standalone content review with LLM-powered analysis](../../assets/a2a_reviewer_ui.png)
-
-### The Writer UI
-
-Open http://localhost:8002 — enter a topic and tone, and watch the Writer compose content, call the Reviewer via A2A, and present the full pipeline: draft, review feedback, and final version.
-
-![Writer Agent UI — shows A2A discovery, communication flow, and results from both agents](../../assets/a2a_writer_ui.png)
+- **Reviewer UI**: http://localhost:8001 — runs standalone too, paste text and get a review directly.
+- **Writer UI**: http://localhost:8002 — enter a topic and tone, watch the Writer compose content, call the Reviewer via A2A, and present the full pipeline.
 
 ## Why This Matters
 

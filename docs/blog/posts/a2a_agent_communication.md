@@ -1,14 +1,14 @@
 ---
 date: 2026-02-06
 authors:
-  - mars
+  - udith
 categories:
   - Jac Programming
   - Tutorials
 slug: a2a-agent-communication-byllm
 ---
 
-# When AI Agents Talk: Building Agent-to-Agent Communication with byLLM
+# Agent-to-Agent Communication (A2A) in Jac: From Monolithic Agents to Collaborative Microservices
 
 There's a growing assumption in the AI world that smarter agents will solve harder problems. Build a bigger model, give it more tools, and eventually it handles everything. But anyone who's actually built production AI systems knows this falls apart quickly. A single agent that handles customer support, writes content, manages finances, and analyzes data becomes a tangled mess of prompts, tools, and edge cases. The same architectural lesson we learned with monolithic software applies here: **decomposition wins**.
 
